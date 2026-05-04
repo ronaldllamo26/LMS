@@ -12,7 +12,11 @@ require_once __DIR__ . '/../config.php';
  * Returns the currently logged-in user's data from session.
  */
 function current_user(): ?array {
-    return $_SESSION['user'] ?? null;
+    if (!isset($_SESSION['user']['id'])) return null;
+    $db = db_connect();
+    $id = $_SESSION['user']['id'];
+    $res = $db->query("SELECT * FROM users WHERE id = $id");
+    return $res ? $res->fetch_assoc() : null;
 }
 
 /**
@@ -180,6 +184,149 @@ function predict_wait_time(int $queue_type_id, int $user_position): array {
 }
 
 // ─── Best Time Recommendation ─────────────────────────────────────────────────
+
+/**
+ * Sync AI Journey progress based on actual database records.
+ * Detects if the current step is finished and advances to the next AUTOMATICALLY.
+ */
+function sync_journey_progress($user_id) {
+    $db = db_connect();
+
+    if (!isset($_SESSION['journey'])) {
+        // ATTEMPT TO LOAD FROM DATABASE (Server-side sync)
+        $stmt = $db->prepare("SELECT * FROM user_journeys WHERE user_id = ? AND status = 'active' LIMIT 1");
+        $stmt->bind_param('i', $user_id);
+        $stmt->execute();
+        $db_journey = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if ($db_journey) {
+            $journey = [
+                'steps' => json_decode($db_journey['steps'], true),
+                'ticket_ids' => json_decode($db_journey['ticket_ids'], true),
+                'current_step' => $db_journey['current_step'],
+                'total_steps' => $db_journey['total_steps'],
+                'from_db' => true
+            ];
+        } else {
+            return false;
+        }
+    } else {
+        $journey = &$_SESSION['journey'];
+    }
+    
+    $log_file = __DIR__ . '/../sync_debug.log';
+    $log = "\n--- SYNC START [" . date('Y-m-d H:i:s') . "] ---\n";
+    $log .= "User ID: $user_id | Source: " . (isset($journey['from_db']) ? 'DATABASE' : 'SESSION') . "\n";
+    $log .= "Ticket IDs Tracked: " . json_encode($journey['ticket_ids'] ?? []) . "\n";
+
+    // 1. Calculate current step based on ABSOLUTE ticket truth
+    $actual_step = 0;
+    $ticket_ids = $journey['ticket_ids'] ?? [];
+
+    foreach ($journey['steps'] as $index => $q_id) {
+        $target_ticket_id = $ticket_ids[$q_id] ?? 0;
+        if (!$target_ticket_id) {
+            $log .= "Step $index (Queue $q_id): No ticket ID found. Stopping.\n";
+            break;
+        }
+
+        $stmt = $db->prepare("SELECT status FROM queue_entries WHERE id = ?");
+        $stmt->bind_param('i', $target_ticket_id);
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        $status = $res['status'] ?? 'unknown';
+        if (in_array($status, ['done', 'no_show', 'cancelled'])) {
+            $log .= "Step $index (Ticket $target_ticket_id): FINISHED ($status)\n";
+            $actual_step = $index + 1;
+        } else {
+            $log .= "Step $index (Ticket $target_ticket_id): NOT finished ($status)\n";
+            break;
+        }
+    }
+
+    $journey['current_step'] = min($actual_step, $journey['total_steps'] - 1);
+    $log .= "Calculated Actual Step: $actual_step | Target Index: " . $journey['current_step'] . "\n";
+
+    if ($actual_step >= $journey['total_steps']) {
+        $log .= "Journey is complete.\n";
+        // Update DB status to completed
+        $stmt = $db->prepare("UPDATE user_journeys SET status = 'completed', current_step = ? WHERE user_id = ?");
+        $stmt->bind_param('ii', $journey['total_steps'], $user_id);
+        $stmt->execute();
+        $stmt->close();
+        file_put_contents($log_file, $log, FILE_APPEND);
+        return false;
+    }
+
+    $current_q_id = $journey['steps'][$journey['current_step']];
+    
+    // 2. Check if we have an active (waiting/serving) or reserved (pending) ticket for this step
+    $stmt = $db->prepare("SELECT id, ticket_number, status FROM queue_entries WHERE user_id = ? AND queue_type_id = ? AND status IN ('waiting', 'serving', 'pending') ORDER BY id DESC LIMIT 1");
+    $stmt->bind_param('ii', $user_id, $current_q_id);
+    $stmt->execute();
+    $active = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$active) {
+        $log .= "No ticket found for Target Step " . ($journey['current_step'] + 1) . ". AUTO-JOINING as waiting.\n";
+        // ... (Keep the auto-join logic below as fallback)
+        $stmt = $db->prepare("SELECT name, prefix FROM queue_types WHERE id = ?");
+        $stmt->bind_param('i', $current_q_id);
+        $stmt->execute();
+        $q_data = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        $prefix = $q_data['prefix'] ?? 'T';
+        $new_ticket_num = generate_ticket_number($current_q_id, $prefix);
+        $sql_ins = "INSERT INTO queue_entries (queue_type_id, user_id, ticket_number, status, joined_at, position) 
+                    VALUES (?, ?, ?, 'waiting', NOW(), (SELECT IFNULL(MAX(position), 0) + 1 FROM queue_entries q2 WHERE q2.queue_type_id = ? AND DATE(q2.joined_at) = CURDATE()))";
+        $stmt_ins = $db->prepare($sql_ins);
+        $stmt_ins->bind_param('iisi', $current_q_id, $user_id, $new_ticket_num, $current_q_id);
+        $stmt_ins->execute();
+        $new_id = $db->insert_id;
+        $stmt_ins->close();
+        $_SESSION['active_ticket_id'] = $new_id;
+        $_SESSION['journey'] = $journey;
+        return true;
+    } elseif ($active['status'] === 'pending') {
+        $log .= "Found PENDING ticket (" . $active['ticket_number'] . "). ACTIVATING now.\n";
+        $stmt = $db->prepare("UPDATE queue_entries SET status = 'waiting', joined_at = NOW() WHERE id = ?");
+        $stmt->bind_param('i', $active['id']);
+        $stmt->execute();
+        $stmt->close();
+        
+        $_SESSION['active_ticket_id'] = $active['id'];
+        $_SESSION['journey'] = $journey;
+        log_action('JOURNEY_ACTIVATE', "Activated pending ticket " . $active['ticket_number']);
+        return true;
+    } else {
+        $log .= "Active ticket found: " . $active['ticket_number'] . " (" . $active['status'] . ").\n";
+        $_SESSION['active_ticket_id'] = $active['id'];
+        $journey['debug_status'] = "Waiting in queue...";
+    }
+
+    $journey['current_step'] = min($actual_step, $journey['total_steps'] - 1);
+    
+    // SAVE BACK TO DATABASE
+    $status = ($actual_step >= $journey['total_steps']) ? 'completed' : 'active';
+    $sql_upd = "UPDATE user_journeys SET current_step = ?, status = ? WHERE user_id = ?";
+    $stmt = $db->prepare($sql_upd);
+    $stmt->bind_param('isi', $journey['current_step'], $status, $user_id);
+    $stmt->execute();
+    $stmt->close();
+
+    // Save to session if available
+    if (isset($_SESSION['journey'])) {
+        $_SESSION['journey'] = $journey;
+    }
+    
+    $log .= "--- SYNC END ---\n";
+    file_put_contents($log_file, $log, FILE_APPEND);
+    return false;
+}
 
 /**
  * Returns the 3 best hours to visit a queue based on 30-day history.

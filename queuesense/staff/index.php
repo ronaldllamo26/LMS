@@ -27,131 +27,137 @@ $stmt->close();
 ?>
 
 <main class="qs-main-layout">
-    <div class="qs-main-content">
-
-        <!-- Page Header -->
-        <div class="qs-page-header d-flex align-items-center justify-content-between">
-            <div>
-                <h1 class="qs-page-title">Serving Dashboard</h1>
-                <p class="qs-page-sub">
-                    <span class="live-dot me-1"></span> Live Monitoring • 
-                    <?= $window_data ? htmlspecialchars($window_data['window_label']) : 'No Window Assigned' ?>
-                </p>
-            </div>
-            <div class="text-end">
-                <div id="live-clock" class="fw-bold text-dark fs-5">00:00:00</div>
-                <div class="text-muted small"><?= date('l, F j, Y') ?></div>
-            </div>
-        </div>
-
-        <?php if (!$window_data): ?>
-            <div class="qs-card text-center py-5">
-                <i class="bi bi-exclamation-octagon text-warning fs-1 mb-3"></i>
-                <h4 class="fw-bold">Window Not Assigned</h4>
-                <p class="text-muted mb-0">Please contact the Administrator to assign you to a service window.</p>
-            </div>
-        <?php else: ?>
-
-            <div class="row g-4">
-                
-                <!-- LEFT: Active Transaction -->
-                <div class="col-lg-7">
-                    <div class="qs-card h-100 shadow-sm" id="serving-card">
-                        <div class="qs-card-header">
-                            <h5 class="qs-card-title">Now Serving</h5>
-                            <span class="qs-badge qs-badge-serving" id="status-badge">Active</span>
-                        </div>
-
-                        <div id="serving-placeholder" class="text-center py-5 d-none">
-                            <div class="mb-3 opacity-25">
-                                <i class="bi bi-person-slash" style="font-size:4rem;"></i>
-                            </div>
-                            <h5 class="fw-bold text-muted">No Active Transaction</h5>
-                            <p class="text-muted small mb-4">Click "Next Student" to call the next person in line.</p>
-                            <button onclick="callNext()" class="qs-btn-primary btn-lg px-4 py-2">
-                                <i class="bi bi-megaphone-fill"></i> Next Student
-                            </button>
-                        </div>
-
-                        <div id="serving-content" class="qs-animate-in">
-                            <div class="d-flex align-items-center gap-4 mb-4">
-                                <div class="ticket-display">
-                                    <div class="ticket-label">Ticket No.</div>
-                                    <div class="ticket-val" id="serving-ticket">---</div>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <h3 class="fw-800 mb-0" id="serving-name">Loading...</h3>
-                                    <div class="text-muted" id="serving-sid">---</div>
-                                </div>
-                            </div>
-
-                            <div class="qs-ai-card mb-4">
-                                <div class="qs-ai-title"><i class="bi bi-lightning-charge-fill me-1"></i> Transaction Details</div>
-                                <div class="row g-3">
-                                    <div class="col-6">
-                                        <div class="text-muted small mb-1">Time Called</div>
-                                        <div class="fw-semibold" id="serving-called-at">--:-- --</div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="text-muted small mb-1">Queue Category</div>
-                                        <div class="fw-semibold"><?= htmlspecialchars($window_data['queue_name']) ?></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex gap-2 mt-auto">
-                                <button onclick="markDone()" class="qs-btn-primary flex-grow-1 py-3 justify-content-center">
-                                    <i class="bi bi-check-lg fs-5"></i> Mark as Done
-                                </button>
-                                <button onclick="recall()" class="btn btn-outline-primary border-2 px-3" title="Recall Student">
-                                    <i class="bi bi-megaphone"></i>
-                                </button>
-                                <button onclick="noShow()" class="btn btn-outline-danger border-2 px-3" title="No Show">
-                                    <i class="bi bi-person-x"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+    <div class="qs-main-content" style="padding: calc(var(--navbar-h) + 20px) 0 0 0 !important; display: flex; flex-direction: column; min-height: 100vh;">
+        <div class="p-4 flex-grow-1">
+            <!-- Page Header -->
+            <div class="qs-page-header d-flex align-items-center justify-content-between">
+                <div>
+                    <h1 class="qs-page-title">Serving Dashboard</h1>
+                    <p class="qs-page-sub">
+                        <span class="live-dot me-1"></span> Live Monitoring • 
+                        <?= $window_data ? htmlspecialchars($window_data['window_label']) : 'No Window Assigned' ?>
+                    </p>
                 </div>
+                <div class="text-end">
+                    <div id="live-clock" class="fw-bold text-dark fs-5">00:00:00 PM</div>
+                    <div class="text-muted small"><?= date('l, F j, Y') ?></div>
+                </div>
+            </div>
 
-                <!-- RIGHT: Queue List & Quick Stats -->
-                <div class="col-lg-5">
+            <style>
+                .qs-page-title { font-weight: 800; letter-spacing: -0.5px; color: #1e293b; }
+                .qs-page-sub { font-size: 0.9rem; color: #64748b; font-weight: 500; }
+            </style>
+
+            <?php if (!$window_data): ?>
+                <div class="qs-card text-center py-5">
+                    <i class="bi bi-exclamation-octagon text-warning fs-1 mb-3"></i>
+                    <h4 class="fw-bold">Window Not Assigned</h4>
+                    <p class="text-muted mb-0">Please contact the Administrator to assign you to a service window.</p>
+                </div>
+            <?php else: ?>
+
+                <div class="row g-4">
                     
-                    <!-- Quick Stats -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6">
-                            <div class="qs-stat-card border-start border-4">
-                                <div class="qs-stat-label">Waiting</div>
-                                <div class="qs-stat-value" id="stat-waiting">0</div>
-                                <i class="bi bi-people qs-stat-icon"></i>
+                    <!-- LEFT: Active Transaction -->
+                    <div class="col-lg-7">
+                        <div class="qs-card h-100 shadow-sm" id="serving-card">
+                            <div class="qs-card-header">
+                                <h5 class="qs-card-title">Now Serving</h5>
+                                <span class="qs-badge qs-badge-serving" id="status-badge">Active</span>
                             </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="qs-stat-card border-start border-4 border-success">
-                                <div class="qs-stat-label">Estimated Wait</div>
-                                <div class="qs-stat-value" id="stat-avg" style="font-size:1.4rem; padding-top:6px;">-- min</div>
-                                <i class="bi bi-clock-history qs-stat-icon"></i>
+
+                            <div id="serving-placeholder" class="text-center py-5 d-none">
+                                <div class="mb-3 opacity-25">
+                                    <i class="bi bi-person-slash" style="font-size:4rem;"></i>
+                                </div>
+                                <h5 class="fw-bold text-muted">No Active Transaction</h5>
+                                <p class="text-muted small mb-4">Click "Next Student" to call the next person in line.</p>
+                                <button onclick="callNext()" class="qs-btn-primary btn-lg px-4 py-2">
+                                    <i class="bi bi-megaphone-fill"></i> Next Student
+                                </button>
+                            </div>
+
+                            <div id="serving-content" class="qs-animate-in">
+                                <div class="d-flex align-items-center gap-4 mb-4">
+                                    <div class="ticket-display">
+                                        <div class="ticket-label">Ticket No.</div>
+                                        <div class="ticket-val" id="serving-ticket">---</div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h3 class="fw-800 mb-0" id="serving-name">Loading...</h3>
+                                        <div class="text-muted" id="serving-sid">---</div>
+                                    </div>
+                                </div>
+
+                                <div class="qs-ai-card mb-4">
+                                    <div class="qs-ai-title"><i class="bi bi-lightning-charge-fill me-1"></i> Transaction Details</div>
+                                    <div class="row g-3">
+                                        <div class="col-6">
+                                            <div class="text-muted small mb-1">Time Called</div>
+                                            <div class="fw-semibold" id="serving-called-at">--:-- --</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="text-muted small mb-1">Queue Category</div>
+                                            <div class="fw-semibold"><?= htmlspecialchars($window_data['queue_name']) ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 mt-auto">
+                                    <button onclick="markDone()" class="qs-btn-primary flex-grow-1 py-3 justify-content-center">
+                                        <i class="bi bi-check-lg fs-5"></i> Mark as Done
+                                    </button>
+                                    <button onclick="recall()" class="btn btn-outline-primary border-2 px-3" title="Recall Student">
+                                        <i class="bi bi-megaphone"></i>
+                                    </button>
+                                    <button onclick="noShow()" class="btn btn-outline-danger border-2 px-3" title="No Show">
+                                        <i class="bi bi-person-x"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Waiting List -->
-                    <div class="qs-card shadow-sm p-0 overflow-hidden">
-                        <div class="qs-card-header border-0 p-3 pb-0">
-                            <h5 class="qs-card-title">Next in Line</h5>
+                    <!-- RIGHT: Queue List & Quick Stats -->
+                    <div class="col-lg-5">
+                        
+                        <!-- Quick Stats -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <div class="qs-stat-card border-start border-4">
+                                    <div class="qs-stat-label">Waiting</div>
+                                    <div class="qs-stat-value" id="stat-waiting">0</div>
+                                    <i class="bi bi-people qs-stat-icon"></i>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="qs-stat-card border-start border-4 border-success">
+                                    <div class="qs-stat-label">Estimated Wait</div>
+                                    <div class="qs-stat-value" id="stat-avg" style="font-size:1.4rem; padding-top:6px;">-- min</div>
+                                    <i class="bi bi-clock-history qs-stat-icon"></i>
+                                </div>
+                            </div>
                         </div>
-                        <div class="list-group list-group-flush" id="waiting-list" style="max-height: 400px; overflow-y: auto;">
-                            <!-- Items injected here -->
-                            <div class="text-center py-4 text-muted small">Loading queue...</div>
+
+                        <!-- Waiting List -->
+                        <div class="qs-card shadow-sm p-0 overflow-hidden">
+                            <div class="qs-card-header border-0 p-3 pb-0">
+                                <h5 class="qs-card-title">Next in Line</h5>
+                            </div>
+                            <div class="list-group list-group-flush" id="waiting-list" style="max-height: 400px; overflow-y: auto;">
+                                <!-- Items injected here -->
+                                <div class="text-center py-4 text-muted small">Loading queue...</div>
+                            </div>
                         </div>
+
                     </div>
 
                 </div>
 
-            </div>
-
-        <?php endif; ?>
-
+            <?php endif; ?>
+        </div> <!-- End of flex-grow-1 -->
+        <?php include __DIR__ . '/../includes/footer.php'; ?>
     </div>
 </main>
 
@@ -184,7 +190,12 @@ let currentServingId = null;
 
 // Live Clock
 setInterval(() => {
-    document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+    document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        hour12: true 
+    });
 }, 1000);
 
 /**
@@ -225,8 +236,7 @@ async function updateDashboard() {
 
         // 2. Update Stats
         document.getElementById('stat-waiting').textContent = data.waiting_count;
-        // Simple estimate based on 5 mins per person
-        document.getElementById('stat-avg').textContent = (data.waiting_count * 5) + ' min';
+        document.getElementById('stat-avg').textContent = data.estimated_wait;
 
         // 3. Update Waiting List
         const listContainer = document.getElementById('waiting-list');
@@ -344,4 +354,5 @@ setInterval(updateDashboard, 5000);
 </script>
 ";
 
-require_once __DIR__ . '/../includes/footer.php';
+echo $extra_scripts;
+// End of file

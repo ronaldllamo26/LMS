@@ -58,100 +58,103 @@ $page_title = 'Admin Command Center';
 include __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="d-flex">
+<main class="qs-main-layout">
     <?php include __DIR__ . '/../includes/sidebar.php'; ?>
     
-    <main class="flex-grow-1 qs-main-content">
-        <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="fw-900 text-navy m-0">Admin Command Center</h2>
-                <p class="text-muted small m-0"><?= date('l, F j, Y') ?> — Real-time Campus Monitoring</p>
+    <div class="qs-main-content" style="padding: calc(var(--navbar-h) + 20px) 0 0 0 !important; display: flex; flex-direction: column; min-height: 100vh;">
+        <div class="p-4 flex-grow-1">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-900 text-navy m-0">Admin Command Center</h2>
+                    <p class="text-muted small m-0"><?= date('l, F j, Y') ?> — Real-time Campus Monitoring</p>
+                </div>
+                <button onclick="location.reload()" class="btn btn-navy btn-sm rounded-pill px-4 py-2">
+                    <i class="bi bi-arrow-clockwise me-2"></i> Refresh Data
+                </button>
             </div>
-            <button onclick="location.reload()" class="btn btn-navy btn-sm rounded-pill px-4 py-2">
-                <i class="bi bi-arrow-clockwise me-2"></i> Refresh Data
-            </button>
-        </div>
 
-        <!-- Quick Stats Widgets -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-3">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">Total Served Today</div>
-                    <div class="qs-stat-value"><?= $total_served ?></div>
-                    <i class="bi bi-people qs-stat-icon"></i>
+            <!-- Quick Stats Widgets -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">Total Served Today</div>
+                        <div class="qs-stat-value"><?= $total_served ?></div>
+                        <i class="bi bi-people qs-stat-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">Students Waiting</div>
+                        <div class="qs-stat-value"><?= $total_waiting ?></div>
+                        <i class="bi bi-hourglass-split qs-stat-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">Active Windows</div>
+                        <div class="qs-stat-value"><?= $active_windows ?></div>
+                        <i class="bi bi-door-open qs-stat-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">Avg Service Time</div>
+                        <div class="qs-stat-value"><?= $avg_time ?> <small class="fs-6">min</small></div>
+                        <i class="bi bi-stopwatch qs-stat-icon"></i>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">Students Waiting</div>
-                    <div class="qs-stat-value"><?= $total_waiting ?></div>
-                    <i class="bi bi-hourglass-split qs-stat-icon"></i>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">Active Windows</div>
-                    <div class="qs-stat-value"><?= $active_windows ?></div>
-                    <i class="bi bi-door-open qs-stat-icon"></i>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">Avg Service Time</div>
-                    <div class="qs-stat-value"><?= $avg_time ?> <small class="fs-6">min</small></div>
-                    <i class="bi bi-stopwatch qs-stat-icon"></i>
-                </div>
-            </div>
-        </div>
 
-        <div class="row g-4">
-            <!-- Window Monitor -->
-            <div class="col-md-8">
-                <div class="qs-card mb-4">
-                    <h5 class="fw-800 mb-4"><i class="bi bi-grid-3x3-gap me-2"></i>Service Window Monitor</h5>
-                    <div class="row g-3">
-                        <?php foreach($windows as $w): ?>
-                        <div class="col-md-6">
-                            <div class="p-3 border rounded-4 d-flex align-items-center gap-3 bg-light bg-opacity-50">
-                                <div class="live-dot <?= $w['status'] === 'open' ? '' : 'opacity-25' ?>" style="background:<?= $w['status'] === 'open' ? '#10b981' : '#94a3b8' ?>"></div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-800 small"><?= htmlspecialchars($w['window_label']) ?></div>
-                                    <div class="text-muted" style="font-size:0.7rem;"><?= htmlspecialchars($w['queue_name'] ?? 'Unassigned') ?></div>
-                                </div>
-                                <div class="text-end">
-                                    <div class="fw-900 text-navy"><?= $w['ticket_number'] ?: 'IDLE' ?></div>
-                                    <div class="text-muted extra-small" style="font-size:0.6rem;"><?= htmlspecialchars($user['full_name']) ?></div>
+            <div class="row g-4">
+                <!-- Window Monitor -->
+                <div class="col-md-8">
+                    <div class="qs-card mb-4">
+                        <h5 class="fw-800 mb-4"><i class="bi bi-grid-3x3-gap me-2"></i>Service Window Monitor</h5>
+                        <div class="row g-3">
+                            <?php foreach($windows as $w): ?>
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded-4 d-flex align-items-center gap-3 bg-light bg-opacity-50">
+                                    <div class="live-dot <?= $w['status'] === 'open' ? '' : 'opacity-25' ?>" style="background:<?= $w['status'] === 'open' ? '#10b981' : '#94a3b8' ?>"></div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-800 small"><?= htmlspecialchars($w['window_label']) ?></div>
+                                        <div class="text-muted" style="font-size:0.7rem;"><?= htmlspecialchars($w['queue_name'] ?? 'Unassigned') ?></div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-900 text-navy"><?= $w['ticket_number'] ?: 'IDLE' ?></div>
+                                        <div class="text-muted extra-small" style="font-size:0.6rem;"><?= htmlspecialchars($w['staff_name'] ?? 'Unassigned') ?></div>
+                                    </div>
                                 </div>
                             </div>
+                            <?php endforeach; ?>
                         </div>
-                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Traffic Chart -->
+                    <div class="qs-card">
+                        <h5 class="fw-800 mb-4"><i class="bi bi-graph-up me-2"></i>Hourly Traffic Volume</h5>
+                        <div style="height: 250px;">
+                            <canvas id="trafficChart"></canvas>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Traffic Chart -->
-                <div class="qs-card">
-                    <h5 class="fw-800 mb-4"><i class="bi bi-graph-up me-2"></i>Hourly Traffic Volume</h5>
-                    <div style="height: 250px;">
-                        <canvas id="trafficChart"></canvas>
+                <!-- System Feed -->
+                <div class="col-md-4">
+                    <div class="qs-card h-100">
+                        <h5 class="fw-800 mb-4"><i class="bi bi-activity me-2"></i>Live System Feed</h5>
+                        <div id="activityFeed">
+                            <!-- Feed items generated by JS -->
+                        </div>
                     </div>
                 </div>
             </div>
+        </div> <!-- End of flex-grow-1 -->
+        <?php include __DIR__ . '/../includes/footer.php'; ?>
+    </div>
+</main>
 
-            <!-- System Feed -->
-            <div class="col-md-4">
-                <div class="qs-card h-100">
-                    <h5 class="fw-800 mb-4"><i class="bi bi-activity me-2"></i>Live System Feed</h5>
-                    <div id="activityFeed">
-                        <!-- Feed items generated by JS -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // Traffic Chart
     const ctx = document.getElementById('trafficChart').getContext('2d');
@@ -207,4 +210,4 @@ include __DIR__ . '/../includes/header.php';
     updateFeed();
 </script>
 
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php // End of file ?>

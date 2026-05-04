@@ -6,9 +6,9 @@
 
 /* ─── Design Tokens ──────────────────────────────────────────────── */
 :root {
-    --bcp-navy:      #1e2a5e;   /* BCP sidebar dark navy */
-    --bcp-blue:      #2d3ab0;   /* BCP primary blue */
-    --bcp-indigo:    #5c6bc0;   /* BCP button / accent */
+    --bcp-navy:      #1a3686;   /* BCP SMS Corporate Blue */
+    --bcp-blue:      #2b479a;   /* BCP SMS Active Blue */
+    --bcp-indigo:    #2b479a;   /* Glassmorphism Active State */
     --bcp-red:       #c62828;   /* BCP red accent */
 
     --qs-success:    #2e7d32;
@@ -24,7 +24,7 @@
     --text-muted:    #64748b;
     --text-light:    #94a3b8;
 
-    --sidebar-w:     220px;
+    --sidebar-w:     280px;
     --navbar-h:      56px;
     --radius:        10px;
     --radius-sm:     6px;
@@ -41,12 +41,22 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg-page);
     color: var(--text-dark);
-    font-size: 0.9rem;
+    font-size: 0.92rem;
     line-height: 1.6;
+    letter-spacing: -0.015em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6, .fw-bold, .fw-800 {
+    letter-spacing: -0.025em;
+}
+
+input, button, select, textarea {
+    font-family: 'Inter', sans-serif !important;
 }
 
 a { text-decoration: none; color: inherit; }
@@ -207,13 +217,15 @@ a { text-decoration: none; color: inherit; }
     align-items: center;
     gap: 12px;
     padding: 12px 18px;
-    color: rgba(255,255,255,0.7);
-    font-size: 0.82rem;
-    font-weight: 600;
+    margin: 4px 12px;
+    color: #94a3b8; /* Muted Slate Gray */
+    font-size: 14px; /* Exact BCP SMS Size */
+    font-weight: 500;
     transition: var(--transition);
+    border-radius: 6px;
 }
 
-.qs-nav-item i { font-size: 1.1rem; }
+.qs-nav-item i { font-size: 1.2rem; }
 
 .qs-nav-item:hover {
     background: rgba(255,255,255,0.05);
@@ -221,9 +233,29 @@ a { text-decoration: none; color: inherit; }
 }
 
 .qs-nav-item.active {
-    background: #3b82f6; /* BCP Active Blue */
+    background: #2563eb !important; /* Solid BCP Active Blue */
+    color: #ffffff !important; 
+    box-shadow: none; /* Removed shadow for flat BCP look */
+}
+
+.qs-sidebar-profile {
+    background: rgba(0,0,0,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.qs-profile-avatar {
+    width: 115px; height: 115px;
+    background: #334155;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: white;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    font-size: 2.2rem; /* Larger initials */
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 /* Sidebar Toggle Logic (Hide Completely) */
@@ -251,10 +283,23 @@ a { text-decoration: none; color: inherit; }
 
 .qs-main-content {
     margin-left: var(--sidebar-w);
-    padding-top: calc(var(--navbar-h) + 40px); /* Increased padding to fix overlap */
+    padding-top: calc(var(--navbar-h) + 40px);
     padding-left: 30px;
     padding-right: 30px;
     transition: var(--transition);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ─── No Sidebar Utility ────────────────────────────────────────── */
+.no-sidebar .qs-navbar {
+    left: 0 !important;
+    width: 100% !important;
+}
+.no-sidebar .qs-main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
 }
 
 /* ─── Page Header ────────────────────────────────────────────────── */

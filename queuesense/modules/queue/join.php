@@ -105,6 +105,7 @@ $stmt->close();
 $est = predict_wait_time($queue_id, $waiting_count + 1);
 $best_times = get_best_visit_times($queue_id);
 $page_title = 'Join Queue — ' . $queue['name'];
+$no_sidebar = true; // Force full width layout
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -118,6 +119,19 @@ $page_title = 'Join Queue — ' . $queue['name'];
     <link href="<?= BASE_URL ?>/assets/css/style.css" rel="stylesheet">
     <style>
         body { background:#f0f4f8; }
+        #sidebarToggle { display: none !important; }
+
+        .back-home-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #1a237e;
+            font-weight: 800;
+            text-decoration: none;
+            margin-bottom: 20px;
+            transition: 0.3s;
+        }
+        .back-home-link:hover { transform: translateX(-5px); }
 
         .confirm-card {
             background: white;
@@ -192,106 +206,115 @@ $page_title = 'Join Queue — ' . $queue['name'];
 
 <?php include __DIR__ . '/../../includes/header.php'; ?>
 
-<div class="container" style="max-width:560px; padding:32px 16px;">
+<main class="qs-main-layout">
+    <!-- No sidebar for student standalone pages, but we keep the structure for footer alignment -->
+    <div class="qs-main-content" style="padding: calc(var(--navbar-h) + 20px) 0 0 0 !important; display: flex; flex-direction: column; min-height: 100vh;">
+        
+        <div class="p-4 flex-grow-1">
+            <div class="container" style="max-width:560px;">
 
-    <!-- Back link -->
-    <a href="<?= BASE_URL ?>/modules/queue/status.php"
-       class="d-inline-flex align-items-center gap-1 mb-4 text-muted"
-       style="font-size:0.85rem; text-decoration:none;">
-        <i class="bi bi-arrow-left"></i> Back to Queues
-    </a>
+                <!-- Back link (BCP SMS Precise Style) -->
+                <a href="<?= BASE_URL ?>/modules/queue/status.php" 
+                   class="d-inline-flex align-items-center gap-1 mb-4 text-muted fw-600 text-decoration-none" 
+                   style="font-size: 0.85rem; letter-spacing: 0.3px; transition: 0.2s;">
+                    <i class="bi bi-arrow-left"></i> BACK TO HOME
+                </a>
 
-    <?php if ($error): ?>
-    <div class="alert alert-danger mb-3"><?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
+                <?php if ($error): ?>
+                <div class="alert alert-danger mb-3"><?= htmlspecialchars($error) ?></div>
+                <?php endif; ?>
 
-    <div class="confirm-card qs-animate-in">
+                <div class="confirm-card qs-animate-in">
 
-        <!-- Header -->
-        <div class="confirm-header">
-            <div style="font-size:0.75rem; font-weight:600; text-transform:uppercase;
-                        letter-spacing:0.8px; opacity:0.75; margin-bottom:8px;">
-                Confirm Queue Entry
-            </div>
-            <div style="font-size:1.6rem; font-weight:900; letter-spacing:-0.5px;">
-                <?= htmlspecialchars($queue['name']) ?>
-            </div>
-            <div style="font-size:0.83rem; opacity:0.75; margin-top:4px;">
-                <?= htmlspecialchars($queue['description']) ?>
-            </div>
-        </div>
-
-        <!-- Body -->
-        <div class="confirm-body">
-
-            <!-- Live stats pills -->
-            <div class="d-flex gap-3 mb-24" style="margin-bottom:20px;">
-                <div class="stat-pill">
-                    <div class="stat-pill-value"><?= $waiting_count ?></div>
-                    <div class="stat-pill-label">In Queue</div>
-                </div>
-                <div class="stat-pill">
-                    <div class="stat-pill-value"><?= $est['avg_service'] ?>m</div>
-                    <div class="stat-pill-label">Avg Service</div>
-                </div>
-                <div class="stat-pill">
-                    <div class="stat-pill-value" style="font-size:1.1rem;">
-                        ~<?= $est['label'] ?>
+                    <!-- Header -->
+                    <div class="confirm-header">
+                        <div style="font-size:0.75rem; font-weight:600; text-transform:uppercase;
+                                    letter-spacing:0.8px; opacity:0.75; margin-bottom:8px;">
+                            Confirm Queue Entry
+                        </div>
+                        <div style="font-size:1.6rem; font-weight:900; letter-spacing:-0.5px;">
+                            <?= htmlspecialchars($queue['name']) ?>
+                        </div>
+                        <div style="font-size:0.83rem; opacity:0.75; margin-top:4px;">
+                            <?= htmlspecialchars($queue['description']) ?>
+                        </div>
                     </div>
-                    <div class="stat-pill-label">Est. Wait</div>
+
+                    <!-- Body -->
+                    <div class="confirm-body">
+
+                        <!-- Live stats pills -->
+                        <div class="d-flex gap-3 mb-24" style="margin-bottom:20px;">
+                            <div class="stat-pill">
+                                <div class="stat-pill-value"><?= $waiting_count ?></div>
+                                <div class="stat-pill-label">In Queue</div>
+                            </div>
+                            <div class="stat-pill">
+                                <div class="stat-pill-value"><?= $est['avg_service'] ?>m</div>
+                                <div class="stat-pill-label">Avg Service</div>
+                            </div>
+                            <div class="stat-pill">
+                                <div class="stat-pill-value" style="font-size:1.1rem;">
+                                    ~<?= $est['label'] ?>
+                                </div>
+                                <div class="stat-pill-label">Est. Wait</div>
+                            </div>
+                        </div>
+
+                        <!-- AI Best Time Card -->
+                        <?php if (!empty($best_times)): ?>
+                        <div class="ai-card mb-4">
+                            <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase;
+                                        letter-spacing:0.6px; color:#1a237e; margin-bottom:8px;">
+                                <i class="bi bi-lightning-charge-fill me-1 text-warning"></i>
+                                AI Recommendation — Best Times Today
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <?php foreach ($best_times as $bt): ?>
+                                <span style="background:#1a237e; color:white; border-radius:20px;
+                                             padding:4px 12px; font-size:0.78rem; font-weight:600;">
+                                    <?= htmlspecialchars($bt['label']) ?>
+                                    <span style="opacity:0.7; font-size:0.68rem;">(~<?= $bt['avg_wait'] ?>m wait)</span>
+                                </span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
+                        <!-- Join form -->
+                        <form method="POST" action="">
+                            <!-- Priority checkbox -->
+                            <div class="d-flex align-items-center gap-2 mb-4 p-3"
+                                 style="background:#fafbfc; border-radius:10px; border:1px solid #e8edf3;">
+                                <input type="checkbox" class="form-check-input m-0" name="priority" id="priorityCheck"
+                                       style="width:18px;height:18px;">
+                                <label for="priorityCheck" style="font-size:0.85rem; font-weight:600; cursor:pointer; margin:0;">
+                                    <i class="bi bi-shield-check text-primary me-1"></i>
+                                    I am a PWD / Senior Citizen (Priority Lane)
+                                </label>
+                            </div>
+
+                            <!-- Confirm info -->
+                            <div class="mb-4" style="font-size:0.82rem; color:#64748b; line-height:1.7;">
+                                <i class="bi bi-info-circle text-primary me-1"></i>
+                                By joining this queue, you agree to be present when your ticket is called.
+                                Missed calls will be marked as <strong>No Show</strong>.
+                            </div>
+
+                            <button type="submit" name="confirm_join" class="confirm-btn">
+                                <i class="bi bi-ticket-perforated me-2"></i>
+                                Get My Ticket — <?= htmlspecialchars($queue['name']) ?>
+                            </button>
+                        </form>
+
+                    </div>
                 </div>
             </div>
-
-            <!-- AI Best Time Card -->
-            <?php if (!empty($best_times)): ?>
-            <div class="ai-card mb-4">
-                <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase;
-                            letter-spacing:0.6px; color:#1a237e; margin-bottom:8px;">
-                    <i class="bi bi-lightning-charge-fill me-1 text-warning"></i>
-                    AI Recommendation — Best Times Today
-                </div>
-                <div class="d-flex gap-2 flex-wrap">
-                    <?php foreach ($best_times as $bt): ?>
-                    <span style="background:#1a237e; color:white; border-radius:20px;
-                                 padding:4px 12px; font-size:0.78rem; font-weight:600;">
-                        <?= htmlspecialchars($bt['label']) ?>
-                        <span style="opacity:0.7; font-size:0.68rem;">(~<?= $bt['avg_wait'] ?>m wait)</span>
-                    </span>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- Join form -->
-            <form method="POST" action="">
-                <!-- Priority checkbox -->
-                <div class="d-flex align-items-center gap-2 mb-4 p-3"
-                     style="background:#fafbfc; border-radius:10px; border:1px solid #e8edf3;">
-                    <input type="checkbox" class="form-check-input m-0" name="priority" id="priorityCheck"
-                           style="width:18px;height:18px;">
-                    <label for="priorityCheck" style="font-size:0.85rem; font-weight:600; cursor:pointer; margin:0;">
-                        <i class="bi bi-shield-check text-primary me-1"></i>
-                        I am a PWD / Senior Citizen (Priority Lane)
-                    </label>
-                </div>
-
-                <!-- Confirm info -->
-                <div class="mb-4" style="font-size:0.82rem; color:#64748b; line-height:1.7;">
-                    <i class="bi bi-info-circle text-primary me-1"></i>
-                    By joining this queue, you agree to be present when your ticket is called.
-                    Missed calls will be marked as <strong>No Show</strong>.
-                </div>
-
-                <button type="submit" name="confirm_join" class="confirm-btn">
-                    <i class="bi bi-ticket-perforated me-2"></i>
-                    Get My Ticket — <?= htmlspecialchars($queue['name']) ?>
-                </button>
-            </form>
-
         </div>
+        <?php include __DIR__ . '/../../includes/footer.php'; ?>
     </div>
-</div>
+</main>
 
-<?php include __DIR__ . '/../../includes/footer.php'; ?>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

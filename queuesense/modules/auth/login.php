@@ -104,6 +104,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             overflow: hidden;
         }
 
+        /* Remove default browser eye icon for passwords */
+        input::-ms-reveal,
+        input::-ms-clear {
+            display: none !important;
+        }
+        
+        input::-webkit-contacts-auto-fill-button, 
+        input::-webkit-credentials-auto-fill-button {
+            visibility: hidden;
+            display: none !important;
+            pointer-events: none;
+        }
+
         /* ── Split Layout ───────────────────── */
         .bcp-login-wrap {
             display: flex;
@@ -492,33 +505,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    style="padding-right:42px;">
                             <button type="button" class="bcp-pw-toggle" id="pwToggle"
                                     onclick="togglePassword()">
-                                <i class="bi bi-eye" id="pwIcon"></i>
+                                <i class="bi bi-eye-slash" id="pwIcon"></i>
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Student hint -->
-                <p class="bcp-hint" id="studentHint">
-                    <i class="bi bi-info-circle flex-shrink-0 mt-1 text-primary"></i>
-                    Format: # + First 2 letters of Last Name + 8080 (e.g. #Ll8080)
-                </p>
+
 
                 <button type="submit" class="bcp-btn" id="submitBtn">
                     <span id="submitLabel">Sign in</span>
                 </button>
             </form>
 
-            <!-- QR Login -->
-            <div id="qrSection">
-                <div class="bcp-divider">
-                    <hr> <span>or use QR code</span> <hr>
-                </div>
-                <a href="<?= BASE_URL ?>/modules/auth/qr_login.php" class="bcp-qr-btn">
-                    <i class="bi bi-qr-code text-primary"></i>
-                    Scan Student QR Card
-                </a>
-            </div>
+
 
             <!-- Institution footer -->
             <div class="text-center mt-4" style="font-size:0.72rem; color:#9ca3af;">
@@ -577,8 +578,6 @@ function switchTab(type) {
 
     // document.getElementById('passwordField').style.display = isStaff ? 'block' : 'none';
     document.getElementById('password').required = true;
-    document.getElementById('studentHint').style.display = isStaff ? 'none' : 'flex';
-    document.getElementById('qrSection').style.display = isStaff ? 'none' : 'block';
 
     document.getElementById('idLabel').textContent = isStaff ? 'Employee ID' : 'Student ID';
     document.getElementById('student_id').placeholder =
@@ -590,7 +589,7 @@ function togglePassword() {
     const icon  = document.getElementById('pwIcon');
     const show  = input.type === 'password';
     input.type = show ? 'text' : 'password';
-    icon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+    icon.className = show ? 'bi bi-eye' : 'bi bi-eye-slash';
 }
 
 // Restore tab state after POST error

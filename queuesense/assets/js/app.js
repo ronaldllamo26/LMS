@@ -34,7 +34,7 @@ const notifCount  = document.getElementById('notif-count');
 function loadNotifications() {
     if (!notifList) return;
 
-    fetch('/queuesense/api/get_notifications.php')
+    fetch(`${window.QS_BASE_URL}/api/get_notifications.php`)
         .then(res => res.json())
         .then(data => {
             const loading = document.getElementById('notif-loading');
@@ -85,7 +85,7 @@ function loadNotifications() {
 }
 
 function markNotifRead(id, el) {
-    fetch(`/queuesense/api/get_notifications.php?mark_read=${id}`, { method: 'POST' })
+    fetch(`${window.QS_BASE_URL}/api/get_notifications.php?mark_read=${id}`, { method: 'POST' })
         .then(() => el.closest('li')?.remove());
 }
 

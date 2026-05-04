@@ -76,12 +76,16 @@ switch ($action) {
         $waiting_list = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();
 
+        // Predict wait time for the next person in line
+        $prediction = predict_wait_time($queue_type_id, ($waiting_count + 1));
+
         echo json_encode([
-            'success'       => true,
-            'window'        => $window,
-            'serving'       => $serving,
-            'waiting_count' => $waiting_count,
-            'waiting_list'  => $waiting_list
+            'success'        => true,
+            'window'         => $window,
+            'serving'        => $serving,
+            'waiting_count'  => $waiting_count,
+            'waiting_list'   => $waiting_list,
+            'estimated_wait' => $prediction['label']
         ]);
         break;
 
@@ -145,7 +149,7 @@ switch ($action) {
         $entry_id = (int)($_POST['id'] ?? 0);
         if (!$entry_id) { echo json_encode(['error' => 'Invalid entry ID.']); exit; }
 
-        $sql_get = "SELECT joined_at, called_at FROM queue_entries WHERE id = ? AND window_id = ?";
+        $sql_get = "SELECT user_id, joined_at, called_at FROM queue_entries WHERE id = ? AND window_id = ?";
         $stmt = $db->prepare($sql_get);
         $stmt->bind_param('ii', $entry_id, $window_id);
         $stmt->execute();
@@ -154,6 +158,7 @@ switch ($action) {
 
         if (!$entry) { echo json_encode(['error' => 'Entry not found.']); exit; }
 
+        $target_user_id = $entry['user_id'];
         $start = new DateTime($entry['joined_at']);
         $end   = new DateTime();
         $diff  = $start->diff($end);
@@ -164,13 +169,19 @@ switch ($action) {
                        WHERE id = ?";
         $stmt = $db->prepare($sql_update);
         $stmt->bind_param('ii', $wait_minutes, $entry_id);
-        $stmt->execute();
-        $stmt->close();
-
-        update_analytics_log($queue_type_id, $wait_minutes);
-        log_action("Transaction completed", "Ticket ID: {$entry_id} served in {$wait_minutes} mins");
-
-        echo json_encode(['success' => true]);
+        
+        if ($stmt->execute()) {
+            $stmt->close();
+            // CRITICAL: Trigger journey sync immediately
+            sync_journey_progress($target_user_id);
+            
+            update_analytics_log($queue_type_id, $wait_minutes);
+            log_action("Transaction completed", "Ticket ID: {$entry_id} served in {$wait_minutes} mins");
+            echo json_encode(['success' => true]);
+        } else {
+            $stmt->close();
+            echo json_encode(['error' => 'DB update failed.']);
+        }
         break;
 
     case 'no_show':

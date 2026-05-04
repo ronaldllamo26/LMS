@@ -74,125 +74,128 @@ $page_title = 'System Analytics';
 include __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="d-flex">
+<main class="qs-main-layout">
     <?php include __DIR__ . '/../includes/sidebar.php'; ?>
     
-    <main class="flex-grow-1 qs-main-content">
-        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-            <div>
-                <h2 class="fw-900 text-navy m-0">System Analytics</h2>
-                <p class="text-muted small m-0">Data insights for <?= date('F d, Y') ?></p>
+    <div class="qs-main-content" style="padding: calc(var(--navbar-h) + 20px) 0 0 0 !important; display: flex; flex-direction: column; min-height: 100vh;">
+        <div class="p-4 flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+                <div>
+                    <h2 class="fw-900 text-navy m-0">System Analytics</h2>
+                    <p class="text-muted small m-0">Data insights for <?= date('F d, Y') ?></p>
+                </div>
+                <button onclick="window.print()" class="btn btn-navy btn-sm rounded-pill px-4">
+                    <i class="bi bi-printer me-2"></i> Print Daily Report
+                </button>
             </div>
-            <button onclick="window.print()" class="btn btn-navy btn-sm rounded-pill px-4">
-                <i class="bi bi-printer me-2"></i> Print Daily Report
-            </button>
-        </div>
 
-        <!-- KPI Cards (Thick Simple Style - Same as Dashboard) -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-3">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">Total Traffic</div>
-                    <div class="qs-stat-value"><?= $total_traffic ?></div>
-                    <i class="bi bi-people-fill qs-stat-icon"></i>
+            <!-- KPI Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">Total Traffic</div>
+                        <div class="qs-stat-value"><?= $total_traffic ?></div>
+                        <i class="bi bi-people-fill qs-stat-icon"></i>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">Served</div>
-                    <div class="qs-stat-value text-success"><?= $total_served ?></div>
-                    <i class="bi bi-check-circle-fill qs-stat-icon"></i>
+                <div class="col-md-3">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">Served</div>
+                        <div class="qs-stat-value text-success"><?= $total_served ?></div>
+                        <i class="bi bi-check-circle-fill qs-stat-icon"></i>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">No-Show</div>
-                    <div class="qs-stat-value text-danger"><?= $total_noshow ?></div>
-                    <i class="bi bi-x-octagon-fill qs-stat-icon"></i>
+                <div class="col-md-3">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">No-Show</div>
+                        <div class="qs-stat-value text-danger"><?= $total_noshow ?></div>
+                        <i class="bi bi-x-octagon-fill qs-stat-icon"></i>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">Avg. Wait</div>
-                    <div class="qs-stat-value"><?= $avg_wait ?> <small class="fs-6">min</small></div>
-                    <i class="bi bi-clock-history qs-stat-icon"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4 mb-4 no-print">
-            <!-- Traffic Chart -->
-            <div class="col-md-8">
-                <div class="qs-card h-100">
-                    <h5 class="fw-800 mb-4">Hourly Student Traffic</h5>
-                    <div style="height: 350px; position: relative;">
-                        <canvas id="analyticsChart"></canvas>
+                <div class="col-md-3">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">Avg. Wait</div>
+                        <div class="qs-stat-value"><?= $avg_wait ?> <small class="fs-6">min</small></div>
+                        <i class="bi bi-clock-history qs-stat-icon"></i>
                     </div>
                 </div>
             </div>
-            <!-- Dept Usage -->
-            <div class="col-md-4">
-                <div class="qs-card h-100">
-                    <h5 class="fw-800 mb-4">Department Usage</h5>
-                    <?php foreach($dept_stats as $ds): 
-                        $pct = $total_traffic > 0 ? ($ds['qty'] / $total_traffic) * 100 : 0;
-                    ?>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span class="fw-bold"><?= htmlspecialchars($ds['name']) ?></span>
-                            <span class="text-muted"><?= $ds['qty'] ?></span>
-                        </div>
-                        <div class="progress" style="height: 8px; border-radius: 10px;">
-                            <div class="progress-bar bg-navy" style="width: <?= $pct ?>%"></div>
+
+            <div class="row g-4 mb-4 no-print">
+                <!-- Traffic Chart -->
+                <div class="col-md-8">
+                    <div class="qs-card h-100">
+                        <h5 class="fw-800 mb-4">Hourly Student Traffic</h5>
+                        <div style="height: 350px; position: relative;">
+                            <canvas id="analyticsChart"></canvas>
                         </div>
                     </div>
-                    <?php endforeach; ?>
                 </div>
-            </div>
-        </div>
-
-        <!-- Recent Transactions Table -->
-        <div class="qs-card">
-            <h5 class="fw-800 mb-4">Recent Transactions</h5>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="bg-light">
-                        <tr class="small text-uppercase fw-bold text-muted">
-                            <th>Ticket</th>
-                            <th>Student</th>
-                            <th>Department</th>
-                            <th>Window</th>
-                            <th>Time Joined</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="small">
-                        <?php foreach($transactions as $t): ?>
-                        <tr>
-                            <td class="fw-bold text-navy"><?= $t['ticket_number'] ?></td>
-                            <td><?= htmlspecialchars($t['full_name']) ?></td>
-                            <td><?= htmlspecialchars($t['dept_name']) ?></td>
-                            <td><?= $t['window_label'] ?: '<span class="text-muted">—</span>' ?></td>
-                            <td><?= date('g:i A', strtotime($t['joined_at'])) ?></td>
-                            <td>
-                                <?php 
-                                    $badge_class = 'badge-soft-warning';
-                                    if($t['status'] == 'done') $badge_class = 'badge-soft-success';
-                                    if($t['status'] == 'no_show') $badge_class = 'badge-soft-danger';
-                                    if($t['status'] == 'serving') $badge_class = 'badge-soft-primary';
-                                ?>
-                                <span class="qs-badge <?= $badge_class ?>">
-                                    <?= str_replace('_', ' ', $t['status']) ?>
-                                </span>
-                            </td>
-                        </tr>
+                <!-- Dept Usage -->
+                <div class="col-md-4">
+                    <div class="qs-card h-100">
+                        <h5 class="fw-800 mb-4">Department Usage</h5>
+                        <?php foreach($dept_stats as $ds): 
+                            $pct = $total_traffic > 0 ? ($ds['qty'] / $total_traffic) * 100 : 0;
+                        ?>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="fw-bold"><?= htmlspecialchars($ds['name']) ?></span>
+                                <span class="text-muted"><?= $ds['qty'] ?></span>
+                            </div>
+                            <div class="progress" style="height: 8px; border-radius: 10px;">
+                                <div class="progress-bar bg-navy" style="width: <?= $pct ?>%"></div>
+                            </div>
+                        </div>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             </div>
-        </div>
-    </main>
-</div>
+
+            <!-- Recent Transactions Table -->
+            <div class="qs-card">
+                <h5 class="fw-800 mb-4">Recent Transactions</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="bg-light">
+                            <tr class="small text-uppercase fw-bold text-muted">
+                                <th>Ticket</th>
+                                <th>Student</th>
+                                <th>Department</th>
+                                <th>Window</th>
+                                <th>Time Joined</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            <?php foreach($transactions as $t): ?>
+                            <tr>
+                                <td class="fw-bold text-navy"><?= $t['ticket_number'] ?></td>
+                                <td><?= htmlspecialchars($t['full_name']) ?></td>
+                                <td><?= htmlspecialchars($t['dept_name']) ?></td>
+                                <td><?= $t['window_label'] ?: '<span class="text-muted">—</span>' ?></td>
+                                <td><?= date('g:i A', strtotime($t['joined_at'])) ?></td>
+                                <td>
+                                    <?php 
+                                        $badge_class = 'badge-soft-warning';
+                                        if($t['status'] == 'done') $badge_class = 'badge-soft-success';
+                                        if($t['status'] == 'no_show') $badge_class = 'badge-soft-danger';
+                                        if($t['status'] == 'serving') $badge_class = 'badge-soft-primary';
+                                    ?>
+                                    <span class="qs-badge <?= $badge_class ?>">
+                                        <?= str_replace('_', ' ', $t['status']) ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div> <!-- End of flex-grow-1 -->
+        <?php include __DIR__ . '/../includes/footer.php'; ?>
+    </div>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -226,4 +229,4 @@ include __DIR__ . '/../includes/header.php';
     });
 </script>
 
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php // End of file ?>

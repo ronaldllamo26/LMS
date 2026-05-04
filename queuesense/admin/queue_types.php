@@ -52,76 +52,79 @@ $page_title = 'Queue Management';
 include __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="d-flex">
+<main class="qs-main-layout">
     <?php include __DIR__ . '/../includes/sidebar.php'; ?>
     
-    <main class="flex-grow-1 qs-main-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="fw-900 text-navy m-0">Queue Types</h2>
-                <p class="text-muted small m-0">Configure departments and ticket prefixes</p>
+    <div class="qs-main-content" style="padding: calc(var(--navbar-h) + 20px) 0 0 0 !important; display: flex; flex-direction: column; min-height: 100vh;">
+        <div class="p-4 flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-900 text-navy m-0">Queue Types</h2>
+                    <p class="text-muted small m-0">Configure departments and ticket prefixes</p>
+                </div>
+                <button class="btn btn-navy btn-sm rounded-pill px-4">
+                    <i class="bi bi-plus-lg me-2"></i> Create New Type
+                </button>
             </div>
-            <button class="btn btn-navy btn-sm rounded-pill px-4">
-                <i class="bi bi-plus-lg me-2"></i> Create New Type
-            </button>
-        </div>
 
-        <?php if ($success_msg): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?= $success_msg ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
+            <?php if ($success_msg): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?= $success_msg ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
-        <div class="row g-4">
-            <?php foreach($q_types as $qt): ?>
-            <div class="col-md-6">
-                <div class="qs-card card-thick-simple p-0 overflow-hidden h-100">
-                    <div class="p-4">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-light rounded-circle p-3 me-3 text-navy">
-                                    <i class="bi <?= $qt['icon'] ?> fs-4"></i>
+            <div class="row g-4">
+                <?php foreach($q_types as $qt): ?>
+                <div class="col-md-6">
+                    <div class="qs-card card-thick-simple p-0 overflow-hidden h-100">
+                        <div class="p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light rounded-circle p-3 me-3 text-navy">
+                                        <i class="bi <?= $qt['icon'] ?> fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-800 m-0"><?= htmlspecialchars($qt['name']) ?></h5>
+                                        <span class="badge badge-soft-primary qs-badge mt-1">Prefix: <?= $qt['prefix'] ?></span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h5 class="fw-800 m-0"><?= htmlspecialchars($qt['name']) ?></h5>
-                                    <span class="badge badge-soft-primary qs-badge mt-1">Prefix: <?= $qt['prefix'] ?></span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" 
+                                           onchange="toggleStatus(<?= $qt['id'] ?>, this.checked)"
+                                           <?= $qt['is_open'] ? 'checked' : '' ?>>
                                 </div>
                             </div>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" 
-                                       onchange="toggleStatus(<?= $qt['id'] ?>, this.checked)"
-                                       <?= $qt['is_open'] ? 'checked' : '' ?>>
+                            <p class="small text-muted mb-4"><?= htmlspecialchars($qt['description']) ?></p>
+                            
+                            <div class="row g-3 border-top pt-3">
+                                <div class="col-6">
+                                    <div class="small text-muted mb-1">Daily Limit</div>
+                                    <div class="fw-bold"><?= $qt['daily_limit'] ?> Tickets</div>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <div class="small text-muted mb-1">Avg. Time</div>
+                                    <div class="fw-bold"><?= $qt['avg_service_time'] ?> mins</div>
+                                </div>
                             </div>
                         </div>
-                        <p class="small text-muted mb-4"><?= htmlspecialchars($qt['description']) ?></p>
-                        
-                        <div class="row g-3 border-top pt-3">
-                            <div class="col-6">
-                                <div class="small text-muted mb-1">Daily Limit</div>
-                                <div class="fw-bold"><?= $qt['daily_limit'] ?> Tickets</div>
-                            </div>
-                            <div class="col-6 text-end">
-                                <div class="small text-muted mb-1">Avg. Time</div>
-                                <div class="fw-bold"><?= $qt['avg_service_time'] ?> mins</div>
-                            </div>
+                        <div class="bg-light p-3 d-flex justify-content-between mt-auto">
+                            <button class="btn btn-sm btn-white rounded-pill px-3 fw-bold shadow-sm" 
+                                    onclick="editType(<?= htmlspecialchars(json_encode($qt)) ?>)">
+                                <i class="bi bi-pencil-square me-2"></i> Edit Config
+                            </button>
+                            <a href="service_windows.php?dept=<?= $qt['id'] ?>" class="btn btn-sm btn-white rounded-pill px-3 fw-bold text-navy shadow-sm">
+                                View Windows
+                            </a>
                         </div>
-                    </div>
-                    <div class="bg-light p-3 d-flex justify-content-between mt-auto">
-                        <button class="btn btn-sm btn-white rounded-pill px-3 fw-bold shadow-sm" 
-                                onclick="editType(<?= htmlspecialchars(json_encode($qt)) ?>)">
-                            <i class="bi bi-pencil-square me-2"></i> Edit Config
-                        </button>
-                        <a href="service_windows.php?dept=<?= $qt['id'] ?>" class="btn btn-sm btn-white rounded-pill px-3 fw-bold text-navy shadow-sm">
-                            View Windows
-                        </a>
                     </div>
                 </div>
+                <?php endforeach; ?>
             </div>
-            <?php endforeach; ?>
-        </div>
-    </main>
-</div>
+        </div> <!-- End of flex-grow-1 -->
+        <?php include __DIR__ . '/../includes/footer.php'; ?>
+    </div>
+</main>
 
 <!-- Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
@@ -189,5 +192,3 @@ function editType(qt) {
     new bootstrap.Modal(document.getElementById('editModal')).show();
 }
 </script>
-
-<?php include __DIR__ . '/../includes/footer.php'; ?>

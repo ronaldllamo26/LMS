@@ -10,6 +10,9 @@ $required_role = 'student';
 require_once __DIR__ . '/../../includes/auth_check.php';
 
 $db = db_connect();
+sync_journey_progress($current_user_id); // Ensure session matches DB reality
+
+$target_queue_id = $_GET['queue_id'] ?? null;
 
 $sql = "SELECT qe.*, qt.name AS queue_name, qt.prefix, qt.color, qt.icon,
                sw.window_label
@@ -17,16 +20,27 @@ $sql = "SELECT qe.*, qt.name AS queue_name, qt.prefix, qt.color, qt.icon,
         JOIN queue_types qt ON qt.id = qe.queue_type_id
         LEFT JOIN service_windows sw ON sw.id = qe.window_id
         WHERE qe.user_id = ? AND qe.status IN ('waiting','serving')
-          AND DATE(qe.joined_at) = CURDATE()
-        ORDER BY qe.joined_at DESC LIMIT 1";
+          AND DATE(qe.joined_at) = CURDATE() ";
+
+if ($target_queue_id) {
+    $sql .= " AND qe.queue_type_id = ? ";
+}
+
+$sql .= " ORDER BY qe.joined_at DESC LIMIT 1";
 
 $stmt = $db->prepare($sql);
-$stmt->bind_param('i', $current_user_id);
+if ($target_queue_id) {
+    $stmt->bind_param('ii', $current_user_id, $target_queue_id);
+} else {
+    $stmt->bind_param('i', $current_user_id);
+}
 $stmt->execute();
 $ticket = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-if (!$ticket) redirect(BASE_URL . '/modules/queue/status.php');
+if (!$ticket) {
+    redirect(BASE_URL . '/modules/queue/status.php');
+}
 
 $est = predict_wait_time($ticket['queue_type_id'], $ticket['position']);
 
@@ -86,6 +100,7 @@ $page_title = 'My Digital Ticket';
         }
         .status-waiting { background: #fef3c7; color: #92400e; }
         .status-serving { background: #dcfce7; color: #166534; animation: pulse 2s infinite; }
+        .status-pending { background: #e2e8f0; color: #475569; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
         .btn-download {
@@ -107,53 +122,97 @@ $page_title = 'My Digital Ticket';
     </div>
 
     <div id="printableTicket" class="ticket-main">
-        <div class="ticket-top">
-            <div class="ticket-label" style="color:rgba(255,255,255,0.6)">Service Category</div>
-            <h3 class="fw-800 m-0"><?= htmlspecialchars($ticket['queue_name']) ?></h3>
-            <div class="small mt-1 opacity-75"><?= date('F d, Y') ?></div>
+        <!-- Added Logo inside printable area -->
+        <div class="text-center pt-4 pb-2">
+            <img src="<?= BASE_URL ?>/assets/images/bcp_logo.png" height="50">
         </div>
 
-        <div class="ticket-body">
-            <div class="ticket-label">Your Ticket Number</div>
-            <div class="ticket-id"><?= $ticket['ticket_number'] ?></div>
-            
-            <div class="qr-wrap" id="qrcode"></div>
-            
-            <div class="d-flex justify-content-between text-start mb-2">
-                <div>
-                    <div class="ticket-label">Status</div>
-                    <div class="status-pill <?= $is_serving ? 'status-serving' : 'status-waiting' ?>">
-                        <?= $is_serving ? 'NOW SERVING' : 'WAITING IN LINE' ?>
-                    </div>
+        <div class="ticket-top" style="padding: 20px 30px;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="text-start">
+                    <div class="ticket-label" style="color:rgba(255,255,255,0.6); font-size: 0.6rem;">Service Category</div>
+                    <h5 class="fw-800 m-0"><?= htmlspecialchars($ticket['queue_name']) ?></h5>
                 </div>
-                <div class="text-end">
-                    <div class="ticket-label">Position</div>
-                    <div class="fw-900 fs-4">#<?= $ticket['position'] ?></div>
-                </div>
+                <?php if (isset($_SESSION['journey'])): 
+                    $display_step = 1;
+                    $step_idx = array_search($ticket['queue_type_id'], $_SESSION['journey']['steps']);
+                    if ($step_idx !== false) {
+                        $display_step = $step_idx + 1;
+                    }
+                ?>
+                    <span class="badge rounded-pill bg-white px-3 py-2 fw-800" style="font-size:0.65rem; color: #1e2a5e !important; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                        STEP <?= $display_step ?> / <?= $_SESSION['journey']['total_steps'] ?>
+                    </span>
+                <?php endif; ?>
             </div>
+            
+            <div class="ticket-id" style="color:white; font-size: 3.5rem; letter-spacing: -1px;"><?= $ticket['ticket_number'] ?></div>
+        </div>
 
-            <div class="dashed-line"></div>
+        <div class="ticket-body" style="padding: 25px 30px;">
+            <?php if (isset($_SESSION['journey'])): ?>
+                <div class="progress mb-4" style="height: 4px; background: #f1f5f9; border-radius: 10px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: <?= ($display_step / $_SESSION['journey']['total_steps']) * 100 ?>%"></div>
+                </div>
+            <?php endif; ?>
 
-            <div class="row text-start g-3">
+            <div class="qr-wrap" id="qrcode-container" style="margin: 0 0 20px 0; padding: 15px; background: #ffffff; min-height: 160px; display: flex; align-items: center; justify-content: center;">
+                <!-- Fixed placeholder for the QR Image -->
+                <div id="qrcode-source" style="display:none;"></div>
+                <img id="finalQrImg" style="display:none; width: 130px; height: 130px; image-rendering: pixelated;">
+            </div>
+            
+            <div class="row text-start g-3 mb-3">
                 <div class="col-6">
-                    <div class="ticket-label">Time Joined</div>
-                    <div class="fw-700"><?= date('g:i A', strtotime($ticket['joined_at'])) ?></div>
+                    <div class="ticket-label">Status</div>
+                    <?php 
+                        $status_class = 'status-waiting';
+                        $status_label = 'WAITING';
+                        if ($ticket['status'] === 'serving') {
+                            $status_class = 'status-serving';
+                            $status_label = 'SERVING';
+                        } elseif ($ticket['status'] === 'pending') {
+                            $status_class = 'status-pending';
+                            $status_label = 'RESERVED';
+                        }
+                    ?>
+                    <div class="status-pill <?= $status_class ?>" style="padding: 5px 12px; font-size: 0.75rem;">
+                        <?= $status_label ?>
+                    </div>
                 </div>
                 <div class="col-6 text-end">
                     <div class="ticket-label">Est. Wait</div>
-                    <div class="fw-700 text-primary">~<?= $est['label'] ?></div>
+                    <div class="fw-800 text-primary">~<?= $est['label'] ?></div>
                 </div>
             </div>
+
+            <div class="dashed-line" style="margin: 20px 0;"></div>
+
+            <!-- Next Step Preview (If Journey) -->
+            <?php if (isset($_SESSION['journey']) && $_SESSION['journey']['current_step'] < $_SESSION['journey']['total_steps'] - 1): 
+                $next_id = $_SESSION['journey']['steps'][$_SESSION['journey']['current_step'] + 1];
+                $next_q = $db->query("SELECT name FROM queue_types WHERE id = $next_id")->fetch_assoc();
+            ?>
+                <div class="p-2 px-3 bg-light rounded-3 text-start d-flex align-items-center gap-2">
+                    <i class="bi bi-arrow-right-circle-fill text-primary" style="font-size: 0.9rem;"></i>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between">
+                            <span class="ticket-label" style="font-size:0.55rem;">NEXT STOP</span>
+                            <span class="fw-800 text-navy" style="font-size:0.75rem;"><?= $next_q['name'] ?></span>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
-    <button class="btn-download" onclick="downloadTicket()">
+    <button class="btn-download" id="downloadBtn" onclick="downloadTicket()">
         <i class="bi bi-download me-2"></i> Save Ticket to Gallery
     </button>
     
-    <div class="text-center mt-4">
-        <a href="<?= BASE_URL ?>/modules/queue/status.php" class="text-decoration-none text-muted small fw-600">
-            <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+    <div class="text-center mt-3">
+        <a href="<?= BASE_URL ?>/modules/queue/status.php" class="btn btn-outline-secondary w-100 rounded-pill fw-700 py-3 border-0" style="font-size:0.85rem;">
+            <i class="bi bi-arrow-left me-1"></i> BACK TO DASHBOARD
         </a>
     </div>
 </div>
@@ -162,38 +221,84 @@ $page_title = 'My Digital Ticket';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
     // Generate QR Code
+    const qrSource = document.getElementById("qrcode-source");
+    const qrFinalImg = document.getElementById("finalQrImg");
     const qrData = "QS-TICKET-<?= $ticket['ticket_number'] ?>-<?= $ticket['id'] ?>";
-    new QRCode(document.getElementById("qrcode"), {
+    
+    const qrcode = new QRCode(qrSource, {
         text: qrData,
-        width: 150,
-        height: 150,
+        width: 256,
+        height: 256,
         colorDark : "#1e2a5e",
-        colorLight : "#f8fafc",
+        colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
     });
 
-    // Download Function
-    function downloadTicket() {
+    // Wait for the library to render, then sync to <img> tag
+    setTimeout(() => {
+        const canvas = qrSource.querySelector('canvas');
+        if (canvas) {
+            qrFinalImg.src = canvas.toDataURL("image/png");
+            qrFinalImg.style.display = "block";
+        }
+    }, 500);
+
+    // Enhanced Download Function
+    async function downloadTicket() {
+        const btn = document.getElementById('downloadBtn');
         const ticket = document.getElementById('printableTicket');
-        html2canvas(ticket, { scale: 3 }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'BCP-Ticket-<?= $ticket['ticket_number'] ?>.png';
-            link.href = canvas.toDataURL();
-            link.click();
-        });
+        
+        btn.innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span> Processing...';
+        btn.disabled = true;
+
+        // Force scroll to top for capture
+        window.scrollTo(0,0);
+
+        // Explicitly wait for image decoding
+        try {
+            await qrFinalImg.decode();
+        } catch (e) {
+            console.log("Image not decoded yet, continuing anyway...");
+        }
+
+        setTimeout(() => {
+            html2canvas(ticket, { 
+                scale: 2,
+                useCORS: true,
+                allowTaint: true, // Allow tainted canvas for local base64 images
+                backgroundColor: "#ffffff",
+                logging: false,
+                width: ticket.offsetWidth,
+                height: ticket.offsetHeight
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'BCP-Ticket-<?= $ticket['ticket_number'] ?>.png';
+                link.href = canvas.toDataURL("image/png", 1.0);
+                link.click();
+                
+                btn.innerHTML = '<i class=\"bi bi-download me-2\"></i> Save Ticket to Gallery';
+                btn.disabled = false;
+            }).catch(err => {
+                alert("Download failed. Please try again.");
+                btn.disabled = false;
+            });
+        }, 1200);
     }
 
-    // Auto Refresh Check
+    // Real-Time Ticket Monitor
     setInterval(() => {
-        fetch('<?= BASE_URL ?>/api/get_queue_status.php')
+        fetch('<?= BASE_URL ?>/api/get_my_ticket_status.php')
             .then(r => r.json())
             .then(data => {
-                const q = data.queues.find(x => x.id == <?= $ticket['queue_type_id'] ?>);
-                if (q && q.now_serving === '<?= $ticket['ticket_number'] ?>') {
+                // Refresh if status changed, OR if we have a NEW ticket ID (Journey Progressed)
+                const currentId = <?= $ticket['id'] ?>;
+                if (data.status !== '<?= $ticket['status'] ?>' || 
+                    data.ticket_id === null || 
+                    (data.ticket_id !== null && data.ticket_id != currentId)) {
                     location.reload();
                 }
             });
-    }, 5000);
+    }, 3000); // Check every 3 seconds for snappy feel
 </script>
 
 </body>

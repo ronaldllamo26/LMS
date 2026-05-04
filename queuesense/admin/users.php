@@ -76,101 +76,104 @@ $page_title = 'User Management';
 include __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="d-flex">
+<main class="qs-main-layout">
     <?php include __DIR__ . '/../includes/sidebar.php'; ?>
     
-    <main class="flex-grow-1 qs-main-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="fw-900 text-navy m-0">User Management</h2>
-                <p class="text-muted small m-0">Manage staff and administrative access</p>
+    <div class="qs-main-content" style="padding: calc(var(--navbar-h) + 20px) 0 0 0 !important; display: flex; flex-direction: column; min-height: 100vh;">
+        <div class="p-4 flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-900 text-navy m-0">User Management</h2>
+                    <p class="text-muted small m-0">Manage staff and administrative access</p>
+                </div>
+                <button class="btn btn-navy btn-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#userModal" onclick="prepAdd()">
+                    <i class="bi bi-person-plus me-2"></i> Add New User
+                </button>
             </div>
-            <button class="btn btn-navy btn-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#userModal" onclick="prepAdd()">
-                <i class="bi bi-person-plus me-2"></i> Add New User
-            </button>
-        </div>
 
-        <?php if ($success_msg): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?= $success_msg ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
+            <?php if ($success_msg): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?= $success_msg ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
-        <!-- Mini Stats -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-4">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">Total Staff</div>
-                    <div class="qs-stat-value"><?= $total_users ?></div>
-                    <i class="bi bi-people qs-stat-icon"></i>
+            <!-- Mini Stats -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">Total Staff</div>
+                        <div class="qs-stat-value"><?= $total_users ?></div>
+                        <i class="bi bi-people qs-stat-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">Active Staff</div>
+                        <div class="qs-stat-value text-success"><?= $active_staff ?></div>
+                        <i class="bi bi-person-check qs-stat-icon"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="qs-stat-card card-thick-simple">
+                        <div class="qs-stat-label">System Admins</div>
+                        <div class="qs-stat-value text-navy"><?= $total_admins ?></div>
+                        <i class="bi bi-shield-lock qs-stat-icon"></i>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">Active Staff</div>
-                    <div class="qs-stat-value text-success"><?= $active_staff ?></div>
-                    <i class="bi bi-person-check qs-stat-icon"></i>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="qs-stat-card card-thick-simple">
-                    <div class="qs-stat-label">System Admins</div>
-                    <div class="qs-stat-value text-navy"><?= $total_admins ?></div>
-                    <i class="bi bi-shield-lock qs-stat-icon"></i>
-                </div>
-            </div>
-        </div>
 
-        <!-- User Table -->
-        <div class="qs-card card-thick-simple">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="bg-light">
-                        <tr class="small text-uppercase fw-bold text-muted">
-                            <th>Employee/ID</th>
-                            <th>Full Name</th>
-                            <th>Department</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="small">
-                        <?php foreach($users as $u): ?>
-                        <tr>
-                            <td class="fw-bold text-navy"><?= htmlspecialchars($u['student_id']) ?></td>
-                            <td>
-                                <div class="fw-bold"><?= htmlspecialchars($u['full_name']) ?></div>
-                                <div class="text-muted smaller"><?= htmlspecialchars($u['email']) ?></div>
-                            </td>
-                            <td><?= htmlspecialchars($u['department'] ?: 'System') ?></td>
-                            <td>
-                                <?php 
-                                    $role_class = $u['role'] === 'admin' ? 'badge-soft-danger' : 'badge-soft-primary';
-                                ?>
-                                <span class="qs-badge <?= $role_class ?>">
-                                    <?= $u['role'] ?>
-                                </span>
-                            </td>
-                            <td>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" role="switch" 
-                                           onchange="toggleUser(<?= $u['id'] ?>, this.checked)"
-                                           <?= $u['is_active'] ? 'checked' : '' ?>>
-                                </div>
-                            </td>
-                            <td class="text-end">
-                                <button class="btn btn-light btn-sm rounded-pill px-3" onclick='prepEdit(<?= json_encode($u) ?>)'>Edit</button>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+            <!-- User Table -->
+            <div class="qs-card card-thick-simple">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="bg-light">
+                            <tr class="small text-uppercase fw-bold text-muted">
+                                <th>Employee/ID</th>
+                                <th>Full Name</th>
+                                <th>Department</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            <?php foreach($users as $u): ?>
+                            <tr>
+                                <td class="fw-bold text-navy"><?= htmlspecialchars($u['student_id']) ?></td>
+                                <td>
+                                    <div class="fw-bold"><?= htmlspecialchars($u['full_name']) ?></div>
+                                    <div class="text-muted smaller"><?= htmlspecialchars($u['email']) ?></div>
+                                </td>
+                                <td><?= htmlspecialchars($u['department'] ?: 'System') ?></td>
+                                <td>
+                                    <?php 
+                                        $role_class = $u['role'] === 'admin' ? 'badge-soft-danger' : 'badge-soft-primary';
+                                    ?>
+                                    <span class="qs-badge <?= $role_class ?>">
+                                        <?= $u['role'] ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" 
+                                               onchange="toggleUser(<?= $u['id'] ?>, this.checked)"
+                                               <?= $u['is_active'] ? 'checked' : '' ?>>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-light btn-sm rounded-pill px-3" onclick='prepEdit(<?= json_encode($u) ?>)'>Edit</button>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-    </main>
-</div>
+        </div> <!-- End of flex-grow-1 -->
+        <?php include __DIR__ . '/../includes/footer.php'; ?>
+    </div>
+</main>
 
 <!-- Add/Edit User Modal -->
 <div class="modal fade" id="userModal" tabindex="-1">
@@ -267,4 +270,4 @@ function prepEdit(u) {
 }
 </script>
 
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php // End of file ?>
