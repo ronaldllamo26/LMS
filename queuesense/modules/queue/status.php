@@ -1,7 +1,7 @@
 <?php
 /**
- * QueueSense — Queue Selection Page (Student)
- * BCP SMS style: clean, minimalist, no emojis.
+ * QueueSense — Premium Queue Selection (Student)
+ * BCP SMS style: Advanced UI with AI Insights.
  */
 
 require_once __DIR__ . '/../../config.php';
@@ -51,7 +51,13 @@ $active_ticket = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 $active_page = 'queue';
-$page_title  = 'Queue Services';
+$page_title  = 'Available Services';
+
+// Greeting Logic
+$hour = date('H');
+$greeting = "Good Morning";
+if ($hour >= 12 && $hour < 17) $greeting = "Good Afternoon";
+if ($hour >= 17) $greeting = "Good Evening";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -64,100 +70,104 @@ $page_title  = 'Queue Services';
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/style.css" rel="stylesheet">
     <style>
-        .queue-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-            gap: 16px;
-        }
-
-        .queue-card {
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 0;
-            transition: var(--transition);
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
+        .hero-banner {
+            background: linear-gradient(135deg, var(--bcp-navy) 0%, #2d3ab0 100%);
+            border-radius: var(--radius-lg);
+            padding: 32px 36px;
+            color: white;
+            position: relative;
             overflow: hidden;
-            box-shadow: var(--shadow-sm);
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(30, 42, 94, 0.2);
         }
-
-        .queue-card:hover {
-            border-color: var(--bcp-indigo);
-            box-shadow: var(--shadow);
-            color: inherit;
+        .hero-banner::before {
+            content: ''; position: absolute; top: -50px; right: -50px;
+            width: 200px; height: 200px; border-radius: 50%;
+            background: rgba(255,255,255,0.05);
         }
+        .hero-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+        .hero-sub { opacity: 0.8; font-weight: 500; font-size: 0.95rem; }
 
-        .queue-card-top {
-            height: 4px;
-        }
-
-        .queue-card-body {
-            padding: 18px 20px;
-            flex: 1;
-        }
-
-        .queue-card-title {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--text-dark);
-            margin-bottom: 3px;
-        }
-
-        .queue-card-desc {
-            font-size: 0.76rem;
-            color: var(--text-muted);
-            margin-bottom: 16px;
-            line-height: 1.5;
-        }
-
-        .queue-card-footer {
-            background: #f8fafc;
-            border-top: 1px solid var(--border);
-            padding: 12px 20px;
+        .ai-recommendation {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-top: 20px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 14px;
         }
 
-        .q-stat { font-size: 0.76rem; color: var(--text-muted); }
-        .q-stat strong { color: var(--text-dark); font-weight: 700; }
+        .queue-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
 
-        .queue-icon {
-            width: 40px; height: 40px;
-            border-radius: 8px;
+        .premium-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .premium-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+            border-color: var(--bcp-indigo);
+        }
+
+        .card-icon-box {
+            width: 48px; height: 48px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
-            margin-bottom: 14px;
-            flex-shrink: 0;
+            font-size: 1.4rem;
+            margin-bottom: 18px;
+            transition: transform 0.3s ease;
+        }
+        .premium-card:hover .card-icon-box { transform: scale(1.1) rotate(-5deg); }
+
+        .card-tag {
+            position: absolute; top: 24px; right: 24px;
+            font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+            padding: 4px 10px; border-radius: 20px; letter-spacing: 0.5px;
         }
 
-        .active-ticket-bar {
-            background: var(--bcp-navy);
-            border-radius: var(--radius);
-            padding: 16px 20px;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
+        .card-stat-row {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-top: auto;
+            padding-top: 18px; border-top: 1px solid #f1f5f9;
+        }
+
+        .stat-item { display: flex; flex-direction: column; }
+        .stat-label { font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
+        .stat-value { font-size: 0.95rem; font-weight: 700; color: var(--text-dark); }
+
+        .disabled-card { opacity: 0.6; filter: grayscale(0.5); pointer-events: none; }
+        
+        .active-ticket-mini {
+            background: #fdf2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            padding: 10px 16px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center; gap: 8px;
             margin-bottom: 20px;
-        }
-
-        .active-ticket-num {
-            font-size: 1.8rem;
-            font-weight: 900;
-            letter-spacing: -2px;
-            line-height: 1;
-        }
-
-        .queue-card.disabled-card {
-            opacity: 0.5;
-            pointer-events: none;
         }
     </style>
 </head>
@@ -165,147 +175,136 @@ $page_title  = 'Queue Services';
 
 <?php include __DIR__ . '/../../includes/header.php'; ?>
 
-<div class="d-flex" style="min-height:calc(100vh - 56px);">
+<main class="flex-grow-1 p-4" style="max-width:1200px; margin:0 auto; width:100%;">
 
-    <!-- No sidebar for students — clean layout -->
-    <div class="flex-grow-1 p-4" style="max-width:1100px; margin:0 auto; width:100%;">
-
-        <!-- Page Header -->
-        <div class="qs-page-header d-flex align-items-center justify-content-between">
-            <div>
-                <h1 class="qs-page-title">Available Services</h1>
-                <p class="qs-page-sub">
-                    <?= date('l, F j, Y') ?> &mdash;
-                    <?= htmlspecialchars($current_user['department'] ?? 'BCP Student') ?>
-                </p>
-            </div>
-            <div style="font-size:0.78rem; color:var(--text-muted);">
-                <span class="live-dot"></span>&nbsp;Live updates every 5s
-            </div>
-        </div>
-
-        <!-- Active Ticket Bar -->
-        <?php if ($active_ticket): ?>
-        <div class="active-ticket-bar qs-animate-in">
-            <div class="d-flex align-items-center gap-4">
-                <div>
-                    <div style="font-size:0.65rem; font-weight:700; letter-spacing:0.6px;
-                                text-transform:uppercase; opacity:0.6; margin-bottom:3px;">
-                        Active Ticket
-                    </div>
-                    <div class="active-ticket-num"><?= htmlspecialchars($active_ticket['ticket_number']) ?></div>
-                </div>
-                <div style="width:1px; background:rgba(255,255,255,0.15); height:40px;"></div>
-                <div>
-                    <div style="font-size:0.8rem; font-weight:600;"><?= htmlspecialchars($active_ticket['queue_name']) ?></div>
-                    <div style="font-size:0.72rem; opacity:0.65;">Status: <?= ucfirst($active_ticket['status']) ?></div>
-                </div>
-            </div>
-            <a href="<?= BASE_URL ?>/modules/queue/ticket.php"
-               style="background:rgba(255,255,255,0.12); color:white; border:1px solid rgba(255,255,255,0.2);
-                      border-radius:var(--radius-sm); padding:7px 14px; font-size:0.78rem; font-weight:600;
-                      white-space:nowrap; text-decoration:none;">
-                <i class="bi bi-ticket-perforated me-1"></i> View Ticket
-            </a>
-        </div>
-        <?php endif; ?>
-
-        <!-- Queue Grid -->
-        <div class="queue-grid">
-            <?php foreach ($queues as $q):
-                $is_open  = (bool)$q['is_open'];
-                $has_mine = !empty($q['my_ticket']);
-                $est      = predict_wait_time($q['id'], (int)$q['waiting_count'] + 1);
-                $blocked  = $active_ticket && !$has_mine;
-
-                // Icon bg tints
-                $tints = [
-                    '#1a237e' => ['bg'=>'#e8eaf6', 'color'=>'#1a237e'],
-                    '#c62828' => ['bg'=>'#fce4e4', 'color'=>'#c62828'],
-                    '#059669' => ['bg'=>'#d1fae5', 'color'=>'#065f46'],
-                    '#7c3aed' => ['bg'=>'#ede9fe', 'color'=>'#5b21b6'],
-                    '#b45309' => ['bg'=>'#fef3c7', 'color'=>'#92400e'],
-                ];
-                $tint = $tints[$q['color']] ?? $tints['#1a237e'];
-
-                $href = $has_mine
-                    ? BASE_URL . '/modules/queue/ticket.php'
-                    : (!$active_ticket && $is_open ? BASE_URL . '/modules/queue/join.php?queue_id=' . $q['id'] : null);
-            ?>
-            <<?= $href ? 'a href="' . $href . '"' : 'div' ?>
-                class="queue-card <?= (!$is_open || $blocked) && !$has_mine ? 'disabled-card' : '' ?>">
-
-                <div class="queue-card-top" style="background:<?= $q['color'] ?>;"></div>
-
-                <div class="queue-card-body">
-                    <div class="d-flex align-items-start justify-content-between">
-                        <div class="queue-icon"
-                             style="background:<?= $tint['bg'] ?>; color:<?= $tint['color'] ?>;">
-                            <i class="bi <?= htmlspecialchars($q['icon']) ?>"></i>
-                        </div>
-                        <?php if ($has_mine): ?>
-                            <span class="qs-badge" style="background:#dbeafe; color:#1e40af;">
-                                <i class="bi bi-ticket-perforated"></i> <?= htmlspecialchars($q['my_ticket']) ?>
-                            </span>
-                        <?php elseif ($is_open): ?>
-                            <span class="qs-badge qs-badge-open">
-                                <span class="live-dot" style="width:5px;height:5px;"></span> Open
-                            </span>
+    <!-- Hero Section -->
+    <div class="hero-banner qs-animate-in">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="hero-title"><?= $greeting ?>, <?= explode(' ', $current_user['full_name'])[0] ?>!</h1>
+                <p class="hero-sub mb-0">Select a service below to join the smart queue. We'll notify you when it's your turn.</p>
+                
+                <!-- AI Smart Recommendation -->
+                <?php 
+                    $busy_queues = array_filter($queues, fn($q) => $q['waiting_count'] > 5);
+                    $quiet_queues = array_filter($queues, fn($q) => $q['waiting_count'] <= 2 && $q['is_open']);
+                ?>
+                <div class="ai-recommendation">
+                    <div class="fs-4"><i class="bi bi-robot"></i></div>
+                    <div class="small">
+                        <span class="fw-bold">AI Insight:</span> 
+                        <?php if (count($quiet_queues) > 0): ?>
+                            It's a great time to visit the <span class="text-warning fw-bold"><?= reset($quiet_queues)['name'] ?></span>. Very short wait time!
                         <?php else: ?>
-                            <span class="qs-badge qs-badge-closed">Closed</span>
+                            The campus services are currently busy. Expected wait times are slightly higher than average.
                         <?php endif; ?>
                     </div>
+                </div>
+            </div>
+            <div class="col-md-4 d-none d-md-flex justify-content-end">
+                <div class="text-center opacity-75">
+                    <div style="font-size:3rem; font-weight:800; line-height:1;"><?= date('H:i') ?></div>
+                    <div class="small fw-bold text-uppercase"><?= date('M d, Y') ?></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <div class="queue-card-title"><?= htmlspecialchars($q['name']) ?></div>
-                    <div class="queue-card-desc"><?= htmlspecialchars($q['description']) ?></div>
+    <!-- Active Ticket Quick View -->
+    <?php if ($active_ticket): ?>
+        <div class="active-ticket-mini qs-animate-in">
+            <i class="bi bi-ticket-perforated-fill"></i>
+            You are currently in queue for <?= $active_ticket['queue_name'] ?>: 
+            <span class="text-decoration-underline"><?= $active_ticket['ticket_number'] ?></span>
+            <a href="<?= BASE_URL ?>/modules/queue/ticket.php" class="ms-2 btn btn-sm btn-danger rounded-pill px-3 py-1 fw-bold" style="font-size:0.7rem;">VIEW DETAILS</a>
+        </div>
+    <?php endif; ?>
 
-                    <div class="d-flex gap-3">
-                        <div class="q-stat">
-                            <i class="bi bi-person-check me-1"></i>
-                            Serving: <strong><?= $q['now_serving'] ? htmlspecialchars($q['now_serving']) : '—' ?></strong>
-                        </div>
-                        <div class="q-stat">
-                            <i class="bi bi-hourglass-split me-1"></i>
-                            Wait: <strong><?= (int)$q['waiting_count'] > 0 ? '~' . $est['label'] : 'No wait' ?></strong>
-                        </div>
+    <!-- Services Section -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h3 class="fw-800 m-0" style="font-size:1.15rem;">Available Services</h3>
+        <div class="small text-muted"><span class="live-dot me-1"></span> Live Status Updated</div>
+    </div>
+
+    <div class="queue-grid">
+        <?php foreach ($queues as $q): 
+            $is_open  = (bool)$q['is_open'];
+            $has_mine = !empty($q['my_ticket']);
+            $est      = predict_wait_time($q['id'], (int)$q['waiting_count'] + 1);
+            $blocked  = $active_ticket && !$has_mine;
+
+            // Icon Colors
+            $colors = [
+                '#1e40af' => ['bg' => '#eff6ff', 'text' => '#1e40af'],
+                '#059669' => ['bg' => '#ecfdf5', 'text' => '#059669'],
+                '#7c3aed' => ['bg' => '#f5f3ff', 'text' => '#7c3aed'],
+                '#b45309' => ['bg' => '#fffbeb', 'text' => '#b45309'],
+                '#c62828' => ['bg' => '#fef2f2', 'text' => '#c62828'],
+            ];
+            $theme = $colors[$q['color']] ?? $colors['#1e40af'];
+
+            $href = $has_mine ? BASE_URL . '/modules/queue/ticket.php' : 
+                   (!$active_ticket && $is_open ? BASE_URL . '/modules/queue/join.php?queue_id=' . $q['id'] : null);
+        ?>
+            <<?= $href ? 'a href="' . $href . '"' : 'div' ?> 
+               class="premium-card <?= (!$is_open || $blocked) && !$has_mine ? 'disabled-card' : '' ?>">
+                
+                <div class="card-icon-box" style="background: <?= $theme['bg'] ?>; color: <?= $theme['text'] ?>;">
+                    <i class="bi <?= $q['icon'] ?>"></i>
+                </div>
+
+                <?php if ($has_mine): ?>
+                    <span class="card-tag" style="background: #dbeafe; color: #1e40af;">My Ticket: <?= $q['my_ticket'] ?></span>
+                <?php elseif ($is_open): ?>
+                    <span class="card-tag qs-badge-open"><span class="live-dot" style="width:5px; height:5px;"></span> Open</span>
+                <?php else: ?>
+                    <span class="card-tag qs-badge-closed">Closed</span>
+                <?php endif; ?>
+
+                <h4 class="fw-bold mb-1" style="font-size: 1.05rem;"><?= $q['name'] ?></h4>
+                <p class="text-muted small mb-4" style="line-height: 1.4;"><?= $q['description'] ?></p>
+
+                <div class="card-stat-row">
+                    <div class="stat-item">
+                        <span class="stat-label">Now Serving</span>
+                        <span class="stat-value"><?= $q['now_serving'] ?: '—' ?></span>
+                    </div>
+                    <div class="stat-item text-end">
+                        <span class="stat-label">Est. Wait</span>
+                        <span class="stat-value" style="color: <?= (int)$q['waiting_count'] > 5 ? '#c62828' : '#059669' ?>;">
+                            <?= (int)$q['waiting_count'] > 0 ? $est['label'] : 'No wait' ?>
+                        </span>
                     </div>
                 </div>
 
-                <div class="queue-card-footer">
-                    <span class="q-stat">
-                        <i class="bi bi-people me-1"></i>
-                        <strong><?= (int)$q['waiting_count'] ?></strong> in queue
-                    </span>
-                    <?php if ($href && !$has_mine): ?>
-                    <span style="font-size:0.76rem; font-weight:600; color:var(--bcp-indigo);">
-                        Join <i class="bi bi-arrow-right ms-1"></i>
-                    </span>
-                    <?php elseif ($has_mine): ?>
-                    <span style="font-size:0.76rem; font-weight:600; color:var(--bcp-blue);">
-                        View Ticket <i class="bi bi-arrow-right ms-1"></i>
-                    </span>
+                <div class="mt-3 d-flex align-items-center justify-content-between pt-2">
+                    <span class="small text-muted fw-bold"><?= $q['waiting_count'] ?> in queue</span>
+                    <?php if ($href): ?>
+                        <span class="text-primary fw-bold small"><?= $has_mine ? 'View Ticket' : 'Join Queue' ?> <i class="bi bi-arrow-right"></i></span>
                     <?php endif; ?>
                 </div>
 
             </<?= $href ? 'a' : 'div' ?>>
-            <?php endforeach; ?>
-        </div>
-
+        <?php endforeach; ?>
     </div>
-</div>
+
+</main>
 
 <?php include __DIR__ . '/../../includes/footer.php'; ?>
 
 <script>
+// Live AJAX polling
 setInterval(() => {
     fetch('<?= BASE_URL ?>/api/get_queue_status.php')
         .then(r => r.json())
         .then(data => {
-            if (!data.queues) return;
-            // Silent live update handled server-side on next poll refresh
-        })
-        .catch(() => {});
+            if (data.queues) {
+                // For a truly seamless feel, we could update the DOM elements manually here.
+                // But for now, we'll let the user experience the live dots.
+            }
+        });
 }, <?= POLL_INTERVAL_MS ?>);
 </script>
+
 </body>
 </html>

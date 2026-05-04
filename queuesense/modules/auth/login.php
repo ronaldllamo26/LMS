@@ -24,15 +24,16 @@ if ($url_error === 'timeout')         $error = 'You were signed out due to inact
 if ($url_error === 'unauthorized')    $error = 'You do not have permission to access that page.';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $student_id = trim($_POST['student_id'] ?? '');
+    $student_id = strtolower(trim($_POST['student_id'] ?? ''));
     $password   = $_POST['password'] ?? '';
+    $login_type = $_POST['login_type'] ?? 'student';
 
     if (empty($student_id)) {
         $error = 'Please enter your Student ID.';
     } else {
         $db   = db_connect();
         $sql  = "SELECT id, student_id, full_name, role, department, password_hash, is_active
-                 FROM users WHERE student_id = ? LIMIT 1";
+                 FROM users WHERE LOWER(student_id) = LOWER(?) LIMIT 1";
         $stmt = $db->prepare($sql);
         $stmt->bind_param('s', $student_id);
         $stmt->execute();
@@ -44,12 +45,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!$user['is_active']) {
             $error = 'Your account has been deactivated. Contact the administrator.';
         } elseif ($user['role'] === 'student') {
-            session_regenerate_id(true);
-            $_SESSION['user']          = $user;
-            $_SESSION['last_activity'] = time();
-            log_action('LOGIN', "Student login: {$user['student_id']}");
-            redirect(BASE_URL . '/modules/queue/status.php');
+            if ($login_type === 'staff') {
+                $error = 'This is a Student ID. Please use the Student tab.';
+            } else {
+                if (empty($password)) {
+                    $error = 'Please enter your password.';
+                } elseif (!password_verify($password, $user['password_hash'] ?? '')) {
+                    $error = 'Incorrect password. Please try again.';
+                } else {
+                    session_regenerate_id(true);
+                    $_SESSION['user']          = $user;
+                    $_SESSION['last_activity'] = time();
+                    log_action('LOGIN', "Student login: {$user['student_id']}");
+                    redirect(BASE_URL . '/modules/queue/status.php');
+                }
+            }
         } else {
+            if ($login_type === 'student') {
+                $error = 'This is a Staff/Admin ID. Please use the Staff / Admin tab.';
+            } else {
             if (empty($password)) {
                 $error = 'Please enter your password.';
             } elseif (!password_verify($password, $user['password_hash'] ?? '')) {
@@ -62,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_action('LOGIN', ucfirst($user['role']) . " login: {$user['student_id']}");
                 if ($user['role'] === 'admin') redirect(BASE_URL . '/admin/index.php');
                 redirect(BASE_URL . '/staff/index.php');
+                }
             }
         }
     }
@@ -421,8 +436,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <h1 class="bcp-sign-in-title">Sign in</h1>
 
-            <!-- Tab switcher: Student / Staff/Admin -->
-            <div class="bcp-tabs" role="group">
+            <!-- Tab switcher: Hidden for Staff/Admin (Secret Portal) -->
+            <div class="bcp-tabs d-none" role="group">
                 <button type="button" class="bcp-tab active" id="tab-student"
                         onclick="switchTab('student')">
                     <i class="bi bi-mortarboard me-1"></i> Student
@@ -443,24 +458,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <!-- Form -->
             <form method="POST" action="" id="loginForm" novalidate>
+                <input type="hidden" name="login_type" id="login_type" value="<?= htmlspecialchars($login_type ?? 'student') ?>">
 
                 <!-- Student ID -->
                 <div class="bcp-field">
                     <label class="bcp-label" for="student_id">
-                        Student ID <span>*</span>
+                        <span id="idLabel">Student ID</span> <span>*</span>
                     </label>
                     <input type="text"
                            class="bcp-input"
                            id="student_id"
                            name="student_id"
-                           placeholder="e.g. 2021-00123"
+                           placeholder="e.g. s230102815"
                            value="<?= clean($_POST['student_id'] ?? '') ?>"
                            autocomplete="username"
                            required>
                 </div>
 
-                <!-- Password (staff/admin only) -->
-                <div id="passwordField" style="display:none;">
+                <!-- Password -->
+                <div id="passwordField">
                     <div class="bcp-field">
                         <label class="bcp-label" for="password">
                             Password <span>*</span>
@@ -472,6 +488,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    name="password"
                                    placeholder="Enter your password"
                                    autocomplete="current-password"
+                                   required
                                    style="padding-right:42px;">
                             <button type="button" class="bcp-pw-toggle" id="pwToggle"
                                     onclick="togglePassword()">
@@ -484,7 +501,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Student hint -->
                 <p class="bcp-hint" id="studentHint">
                     <i class="bi bi-info-circle flex-shrink-0 mt-1 text-primary"></i>
-                    Enter your BCP Student ID to access the queue system. No password required.
+                    Format: # + First 2 letters of Last Name + 8080 (e.g. #Ll8080)
                 </p>
 
                 <button type="submit" class="bcp-btn" id="submitBtn">
@@ -531,7 +548,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Main content -->
         <div class="bcp-right-content">
             <div class="bcp-right-title">
-                QueueSense<br>Smart Queue System
+                QueueSense<br>Smart Queue <span onclick="switchTab('student')" style="cursor: default; user-select: none;">S</span>yste<span onclick="switchTab('staff')" style="cursor: default; user-select: none;">m</span>
             </div>
             <p class="bcp-right-sub">
                 AI-Assisted Queue & Crowd Flow Management<br>
@@ -553,17 +570,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 function switchTab(type) {
     const isStaff = type === 'staff';
+    document.getElementById('login_type').value = type;
 
     document.getElementById('tab-student').classList.toggle('active', !isStaff);
     document.getElementById('tab-staff').classList.toggle('active', isStaff);
 
-    document.getElementById('passwordField').style.display = isStaff ? 'block' : 'none';
-    document.getElementById('password').required = isStaff;
+    // document.getElementById('passwordField').style.display = isStaff ? 'block' : 'none';
+    document.getElementById('password').required = true;
     document.getElementById('studentHint').style.display = isStaff ? 'none' : 'flex';
     document.getElementById('qrSection').style.display = isStaff ? 'none' : 'block';
 
+    document.getElementById('idLabel').textContent = isStaff ? 'Employee ID' : 'Student ID';
     document.getElementById('student_id').placeholder =
-        isStaff ? 'e.g. STAFF-001 or ADMIN-001' : 'e.g. 2021-00123';
+        isStaff ? 'e.g. STAFF-001 or ADMIN-001' : 'e.g. s230102815';
 }
 
 function togglePassword() {
@@ -575,7 +594,7 @@ function togglePassword() {
 }
 
 // Restore tab state after POST error
-<?php if (!empty($_POST['login_type']) && $_POST['login_type'] === 'staff'): ?>
+<?php if (($login_type ?? 'student') === 'staff'): ?>
 switchTab('staff');
 <?php endif; ?>
 

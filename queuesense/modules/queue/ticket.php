@@ -1,6 +1,6 @@
 <?php
 /**
- * QueueSense — My Ticket (Clean BCP SMS style)
+ * QueueSense — My Ticket (Premium QR Version)
  */
 
 require_once __DIR__ . '/../../config.php';
@@ -39,19 +39,8 @@ $stmt->execute();
 $now_serving = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_ticket'])) {
-    $stmt = $db->prepare("UPDATE queue_entries SET status='cancelled' WHERE id=? AND user_id=?");
-    $stmt->bind_param('ii', $ticket['id'], $current_user_id);
-    $stmt->execute();
-    $stmt->close();
-    log_action('TICKET_CANCELLED', "Ticket {$ticket['ticket_number']} cancelled");
-    redirect(BASE_URL . '/modules/queue/status.php');
-}
-
 $is_serving = $ticket['status'] === 'serving';
-$is_next    = $est['people_ahead'] <= 1 && !$is_serving;
-$is_new     = isset($_GET['new']);
-$page_title = 'My Ticket';
+$page_title = 'My Digital Ticket';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -61,337 +50,151 @@ $page_title = 'My Ticket';
     <title><?= $page_title ?> — QueueSense</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="<?= BASE_URL ?>/assets/css/style.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { background: var(--bg-page); }
-
-        .ticket-container { max-width: 440px; margin: 0 auto; }
-
-        .ticket-card {
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            box-shadow: var(--shadow);
+        :root { --bcp-navy: #1e2a5e; --bcp-blue: #2d3ab0; --bcp-gold: #fbbf24; }
+        body { background: #f1f5f9; font-family: 'Outfit', sans-serif; }
+        
+        .ticket-wrapper { max-width: 400px; margin: 40px auto; padding: 0 20px; }
+        
+        .ticket-main {
+            background: white; border-radius: 30px; overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1); position: relative;
         }
 
-        .ticket-header {
-            background: var(--bcp-navy);
-            padding: 20px 24px;
-            color: white;
+        /* Perforated Edge Effect */
+        .ticket-main::before, .ticket-main::after {
+            content: ''; position: absolute; left: -15px; top: 70%;
+            width: 30px; height: 30px; background: #f1f5f9; border-radius: 50%; z-index: 10;
         }
+        .ticket-main::after { left: auto; right: -15px; }
 
-        .ticket-header-label {
-            font-size: 0.65rem;
-            font-weight: 700;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            opacity: 0.6;
-            margin-bottom: 4px;
+        .ticket-top { background: var(--bcp-navy); padding: 30px; text-align: center; color: white; }
+        .ticket-body { padding: 40px 30px; text-align: center; }
+        
+        .ticket-id { font-size: 5rem; font-weight: 900; color: var(--bcp-navy); line-height: 1; letter-spacing: -2px; }
+        .ticket-label { text-transform: uppercase; font-weight: 800; letter-spacing: 2px; color: #94a3b8; font-size: 0.75rem; }
+        
+        .qr-wrap { 
+            background: #f8fafc; padding: 20px; border-radius: 20px; 
+            display: inline-block; margin: 25px 0; border: 2px dashed #e2e8f0;
         }
-
-        .ticket-header-name {
-            font-size: 1.05rem;
-            font-weight: 700;
+        
+        .status-pill {
+            display: inline-block; padding: 8px 20px; border-radius: 100px;
+            font-weight: 700; font-size: 0.85rem; margin-top: 10px;
         }
+        .status-waiting { background: #fef3c7; color: #92400e; }
+        .status-serving { background: #dcfce7; color: #166534; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-        .ticket-header-date {
-            font-size: 0.72rem;
-            opacity: 0.55;
-            margin-top: 2px;
+        .btn-download {
+            width: 100%; padding: 15px; border-radius: 15px; border: none;
+            background: var(--bcp-navy); color: white; font-weight: 700;
+            margin-top: 20px; transition: 0.3s;
         }
+        .btn-download:hover { background: var(--bcp-blue); transform: translateY(-2px); }
 
-        .ticket-dashed { border: none; border-top: 2px dashed var(--border); margin: 0; }
-
-        .ticket-num-section {
-            padding: 28px 24px 20px;
-            text-align: center;
-        }
-
-        .ticket-number {
-            font-size: 5rem;
-            font-weight: 900;
-            color: var(--bcp-navy);
-            letter-spacing: -4px;
-            line-height: 1;
-            display: block;
-        }
-
-        .ticket-num-label {
-            font-size: 0.68rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--text-light);
-            margin-top: 6px;
-        }
-
-        .now-serving-row {
-            margin: 0 24px 20px;
-            background: var(--bg-page);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .now-serving-label {
-            font-size: 0.68rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .now-serving-val {
-            font-size: 1.4rem;
-            font-weight: 900;
-            color: var(--bcp-navy);
-            letter-spacing: -1px;
-            line-height: 1;
-        }
-
-        .people-ahead-wrap { text-align: right; }
-        .people-ahead-num  { font-size: 1.4rem; font-weight: 900; color: var(--text-dark); }
-        .people-ahead-lbl  { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; }
-
-        .ticket-progress-wrap { padding: 0 24px 20px; }
-
-        .ticket-info-table { padding: 0 24px 20px; }
-
-        .t-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 9px 0;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.83rem;
-        }
-
-        .t-row:last-child { border-bottom: none; }
-        .t-label { color: var(--text-muted); }
-        .t-value { font-weight: 600; color: var(--text-dark); }
-
-        .ticket-actions { padding: 0 24px 24px; }
-
-        .alert-called {
-            background: #dcfce7;
-            border: 1px solid #86efac;
-            border-radius: var(--radius-sm);
-            padding: 12px 16px;
-            font-size: 0.83rem;
-            font-weight: 600;
-            color: #166534;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .alert-next {
-            background: #fef9c3;
-            border: 1px solid #fde047;
-            border-radius: var(--radius-sm);
-            padding: 10px 16px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #854d0e;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .btn-cancel {
-            width: 100%;
-            padding: 10px;
-            background: white;
-            border: 1px solid #fca5a5;
-            border-radius: var(--radius-sm);
-            color: var(--bcp-red);
-            font-size: 0.82rem;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .btn-cancel:hover { background: #fef2f2; }
+        .dashed-line { border-top: 2px dashed #e2e8f0; margin: 30px 0; }
     </style>
 </head>
 <body>
 
-<?php include __DIR__ . '/../../includes/header.php'; ?>
-
-<div class="d-flex" style="min-height:calc(100vh - 56px);">
-<div class="flex-grow-1 p-4">
-<div class="ticket-container qs-animate-in">
-
-    <!-- Back -->
-    <a href="<?= BASE_URL ?>/modules/queue/status.php"
-       class="d-inline-flex align-items-center gap-1 mb-3 text-muted"
-       style="font-size:0.82rem;">
-        <i class="bi bi-arrow-left"></i> Back to Services
-    </a>
-
-    <!-- Success alert -->
-    <?php if ($is_new): ?>
-    <div class="alert alert-success d-flex align-items-center gap-2 mb-3 py-2 px-3"
-         style="border-radius:var(--radius-sm); font-size:0.82rem;" id="newAlert">
-        <i class="bi bi-check-circle-fill"></i>
-        Ticket <strong><?= htmlspecialchars($ticket['ticket_number']) ?></strong> generated successfully.
+<div class="ticket-wrapper">
+    <div class="text-center mb-4">
+        <img src="<?= BASE_URL ?>/assets/images/bcp_logo.png" height="60" class="mb-2">
+        <h5 class="fw-800 text-navy">QueueSense Student</h5>
     </div>
-    <?php endif; ?>
 
-    <!-- Status alerts -->
-    <?php if ($is_serving): ?>
-    <div class="alert-called">
-        <i class="bi bi-megaphone-fill"></i>
-        <div>
-            Your ticket is now being served.
-            <?= $ticket['window_label'] ? ' Please go to <strong>' . htmlspecialchars($ticket['window_label']) . '</strong>.' : '' ?>
-        </div>
-    </div>
-    <?php elseif ($is_next): ?>
-    <div class="alert-next">
-        <i class="bi bi-bell-fill"></i>
-        You are next in line. Please be ready.
-    </div>
-    <?php endif; ?>
-
-    <div class="ticket-card">
-
-        <!-- Header -->
-        <div class="ticket-header">
-            <div class="ticket-header-label">Queue Ticket</div>
-            <div class="ticket-header-name"><?= htmlspecialchars($ticket['queue_name']) ?></div>
-            <div class="ticket-header-date">
-                Joined: <?= date('M d, Y g:i A', strtotime($ticket['joined_at'])) ?>
-            </div>
+    <div id="printableTicket" class="ticket-main">
+        <div class="ticket-top">
+            <div class="ticket-label" style="color:rgba(255,255,255,0.6)">Service Category</div>
+            <h3 class="fw-800 m-0"><?= htmlspecialchars($ticket['queue_name']) ?></h3>
+            <div class="small mt-1 opacity-75"><?= date('F d, Y') ?></div>
         </div>
 
-        <hr class="ticket-dashed">
-
-        <!-- Big ticket number -->
-        <div class="ticket-num-section">
-            <span class="ticket-number"><?= htmlspecialchars($ticket['ticket_number']) ?></span>
-            <div class="ticket-num-label">Your Ticket Number</div>
-        </div>
-
-        <!-- Now Serving -->
-        <div class="now-serving-row">
-            <div>
-                <span class="now-serving-label">
-                    <span class="live-dot" style="width:5px;height:5px;"></span>&nbsp;Now Serving
-                </span>
-                <div class="now-serving-val" id="nowServing">
-                    <?= $now_serving ? htmlspecialchars($now_serving['ticket_number']) : '—' ?>
+        <div class="ticket-body">
+            <div class="ticket-label">Your Ticket Number</div>
+            <div class="ticket-id"><?= $ticket['ticket_number'] ?></div>
+            
+            <div class="qr-wrap" id="qrcode"></div>
+            
+            <div class="d-flex justify-content-between text-start mb-2">
+                <div>
+                    <div class="ticket-label">Status</div>
+                    <div class="status-pill <?= $is_serving ? 'status-serving' : 'status-waiting' ?>">
+                        <?= $is_serving ? 'NOW SERVING' : 'WAITING IN LINE' ?>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="ticket-label">Position</div>
+                    <div class="fw-900 fs-4">#<?= $ticket['position'] ?></div>
                 </div>
             </div>
-            <div class="people-ahead-wrap">
-                <div class="people-ahead-num" id="peopleAhead"><?= $est['people_ahead'] ?></div>
-                <div class="people-ahead-lbl">ahead</div>
+
+            <div class="dashed-line"></div>
+
+            <div class="row text-start g-3">
+                <div class="col-6">
+                    <div class="ticket-label">Time Joined</div>
+                    <div class="fw-700"><?= date('g:i A', strtotime($ticket['joined_at'])) ?></div>
+                </div>
+                <div class="col-6 text-end">
+                    <div class="ticket-label">Est. Wait</div>
+                    <div class="fw-700 text-primary">~<?= $est['label'] ?></div>
+                </div>
             </div>
         </div>
-
-        <!-- Progress -->
-        <div class="ticket-progress-wrap">
-            <div class="qs-progress">
-                <div class="qs-progress-bar" id="progressBar"
-                     style="width:<?= min(95, max(5, $est['people_ahead'] === 0 ? 95 : 20)) ?>%"></div>
-            </div>
-            <div class="d-flex justify-content-between mt-1" style="font-size:0.7rem; color:var(--text-light);">
-                <span>Queue progress</span>
-                <span id="estWait">Est. ~<?= $est['label'] ?></span>
-            </div>
-        </div>
-
-        <hr class="ticket-dashed">
-
-        <!-- Info rows -->
-        <div class="ticket-info-table">
-            <div class="t-row">
-                <span class="t-label"><i class="bi bi-123 me-1"></i>Position</span>
-                <span class="t-value">#<?= (int)$ticket['position'] ?></span>
-            </div>
-            <div class="t-row">
-                <span class="t-label"><i class="bi bi-circle-fill me-1"
-                    style="font-size:0.45rem;color:<?= $is_serving ? '#059669' : '#f59e0b' ?>"></i>Status</span>
-                <span class="t-value" style="color:<?= $is_serving ? '#059669' : '#f59e0b' ?>;">
-                    <?= ucfirst($ticket['status']) ?>
-                </span>
-            </div>
-            <?php if ($ticket['priority']): ?>
-            <div class="t-row">
-                <span class="t-label"><i class="bi bi-shield-check me-1"></i>Lane</span>
-                <span class="t-value" style="color:var(--bcp-blue);">Priority (PWD / Senior)</span>
-            </div>
-            <?php endif; ?>
-            <?php if ($ticket['window_label'] && $is_serving): ?>
-            <div class="t-row">
-                <span class="t-label"><i class="bi bi-grid-1x2 me-1"></i>Window</span>
-                <span class="t-value"><?= htmlspecialchars($ticket['window_label']) ?></span>
-            </div>
-            <?php endif; ?>
-            <div class="t-row">
-                <span class="t-label"><i class="bi bi-clock me-1"></i>Joined</span>
-                <span class="t-value"><?= date('g:i A', strtotime($ticket['joined_at'])) ?></span>
-            </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="ticket-actions">
-            <?php if ($ticket['status'] === 'waiting'): ?>
-            <form method="POST" onsubmit="return confirm('Cancel your ticket?');">
-                <button type="submit" name="cancel_ticket" class="btn-cancel">
-                    <i class="bi bi-x-circle me-1"></i> Cancel My Ticket
-                </button>
-            </form>
-            <?php endif; ?>
-        </div>
-
-    </div><!-- /.ticket-card -->
-
-    <div class="text-center mt-3 text-muted" style="font-size:0.72rem;">
-        <i class="bi bi-arrow-repeat me-1"></i>Auto-refreshing every 5 seconds
     </div>
 
-</div>
-</div>
+    <button class="btn-download" onclick="downloadTicket()">
+        <i class="bi bi-download me-2"></i> Save Ticket to Gallery
+    </button>
+    
+    <div class="text-center mt-4">
+        <a href="<?= BASE_URL ?>/modules/queue/status.php" class="text-decoration-none text-muted small fw-600">
+            <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
 </div>
 
-<?php include __DIR__ . '/../../includes/footer.php'; ?>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-const MY_QUEUE = <?= (int)$ticket['queue_type_id'] ?>;
-const MY_TICKET = '<?= htmlspecialchars($ticket['ticket_number']) ?>';
+    // Generate QR Code
+    const qrData = "QS-TICKET-<?= $ticket['ticket_number'] ?>-<?= $ticket['id'] ?>";
+    new QRCode(document.getElementById("qrcode"), {
+        text: qrData,
+        width: 150,
+        height: 150,
+        colorDark : "#1e2a5e",
+        colorLight : "#f8fafc",
+        correctLevel : QRCode.CorrectLevel.H
+    });
 
-setInterval(() => {
-    fetch('<?= BASE_URL ?>/api/get_queue_status.php')
-        .then(r => r.json())
-        .then(data => {
-            if (!data.queues) return;
-            const q = data.queues.find(x => x.id === MY_QUEUE);
-            if (!q) return;
-            document.getElementById('nowServing').textContent  = q.now_serving || '—';
-            document.getElementById('estWait').textContent     = 'Est. ~' + q.est_wait_label;
-            if (q.now_serving === MY_TICKET) location.reload();
-        })
-        .catch(() => {});
-}, <?= POLL_INTERVAL_MS ?>);
+    // Download Function
+    function downloadTicket() {
+        const ticket = document.getElementById('printableTicket');
+        html2canvas(ticket, { scale: 3 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'BCP-Ticket-<?= $ticket['ticket_number'] ?>.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
 
-// Dismiss new ticket alert
-const newAlert = document.getElementById('newAlert');
-if (newAlert) setTimeout(() => {
-    newAlert.style.transition = 'opacity .5s';
-    newAlert.style.opacity = '0';
-    setTimeout(() => newAlert.remove(), 500);
-}, 4000);
+    // Auto Refresh Check
+    setInterval(() => {
+        fetch('<?= BASE_URL ?>/api/get_queue_status.php')
+            .then(r => r.json())
+            .then(data => {
+                const q = data.queues.find(x => x.id == <?= $ticket['queue_type_id'] ?>);
+                if (q && q.now_serving === '<?= $ticket['ticket_number'] ?>') {
+                    location.reload();
+                }
+            });
+    }, 5000);
 </script>
+
 </body>
 </html>

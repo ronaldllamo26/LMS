@@ -157,7 +157,7 @@ a { text-decoration: none; color: inherit; }
 
 .dropdown-item:hover { background: var(--bg-page); color: var(--bcp-blue); }
 
-/* ─── BCP Sidebar ────────────────────────────────────────────────── */
+/* ─── BCP Sidebar (BCP SMS Precise) ────────────────────────────── */
 .qs-sidebar {
     position: fixed;
     top: 0; left: 0;
@@ -167,163 +167,95 @@ a { text-decoration: none; color: inherit; }
     display: flex;
     flex-direction: column;
     z-index: 1020;
-    transition: transform 0.28s ease;
+    transition: var(--transition);
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .qs-sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
     height: var(--navbar-h);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    overflow: visible !important; /* Allow dropdowns to show */
+    position: relative;
+    z-index: 1050;
 }
 
-.qs-sidebar-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 800;
-    font-size: 1rem;
-    color: white;
-}
-
-.qs-sidebar-brand img {
-    width: 30px;
-    height: 30px;
-    object-fit: contain;
-}
-
-/* User profile block */
-.qs-sidebar-user {
-    padding: 20px 16px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.qs-sidebar-avatar {
-    width: 56px; height: 56px;
-    border-radius: 50%;
+.qs-profile-avatar {
+    width: 65px; height: 65px;
     background: rgba(255,255,255,0.15);
-    color: white;
-    font-size: 1.2rem;
-    font-weight: 700;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 10px;
-}
-
-.qs-sidebar-uname {
-    font-size: 0.85rem;
-    font-weight: 700;
     color: white;
-    margin-bottom: 2px;
+    font-size: 1.5rem;
+    font-weight: 800;
 }
 
-.qs-sidebar-uid {
-    font-size: 0.7rem;
-    color: rgba(255,255,255,0.5);
-}
-
-.qs-sidebar-role {
-    padding: 4px 10px;
-    background: rgba(255,255,255,0.12);
-    border-radius: 20px;
-    font-size: 0.65rem;
+.qs-nav-label {
+    font-size: 0.6rem;
     font-weight: 700;
-    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    padding: 15px 15px 5px;
     letter-spacing: 0.5px;
-    color: rgba(255,255,255,0.75);
-    display: inline-block;
-    margin-top: 6px;
 }
 
-/* Nav */
-.qs-sidebar-nav {
-    flex: 1;
-    padding: 12px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-}
-
-.qs-nav-group-label {
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    padding: 12px 8px 4px;
-}
-
-.qs-nav-link {
+.qs-nav-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 9px 10px;
-    border-radius: var(--radius-sm);
-    color: rgba(255,255,255,0.65);
-    font-size: 0.83rem;
-    font-weight: 500;
-    transition: var(--transition);
-}
-
-.qs-nav-link i { font-size: 0.95rem; flex-shrink: 0; }
-.qs-nav-link span:first-of-type { flex: 1; }
-
-.qs-nav-link:hover {
-    background: rgba(255,255,255,0.08);
-    color: white;
-}
-
-.qs-nav-link.active {
-    background: rgba(255,255,255,0.13);
-    color: white;
+    gap: 12px;
+    padding: 12px 18px;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.82rem;
     font-weight: 600;
-}
-
-.qs-nav-badge {
-    font-size: 0.58rem;
-    font-weight: 700;
-    background: var(--bcp-indigo);
-    color: white;
-    padding: 2px 7px;
-    border-radius: 20px;
-}
-
-.qs-sidebar-footer {
-    padding: 10px;
-    border-top: 1px solid rgba(255,255,255,0.08);
-}
-
-.qs-sidebar-logout {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 10px;
-    border-radius: var(--radius-sm);
-    color: rgba(255,255,255,0.5);
-    font-size: 0.83rem;
-    font-weight: 500;
     transition: var(--transition);
 }
 
-.qs-sidebar-logout:hover { background: rgba(198,40,40,0.15); color: #fca5a5; }
-.qs-sidebar-close { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 1rem; }
-.qs-sidebar-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 1015;
-    display: none;
+.qs-nav-item i { font-size: 1.1rem; }
+
+.qs-nav-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: white;
+}
+
+.qs-nav-item.active {
+    background: #3b82f6; /* BCP Active Blue */
+    color: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Sidebar Toggle Logic (Hide Completely) */
+.sidebar-collapsed .qs-sidebar { 
+    transform: translateX(-100%); 
+}
+.sidebar-collapsed .qs-main-content {
+    margin-left: 0;
+}
+.sidebar-collapsed .qs-navbar { 
+    left: 0; 
 }
 
 /* ─── Layout ─────────────────────────────────────────────────────── */
-.qs-main-layout { display: flex; min-height: 100vh; padding-top: var(--navbar-h); }
-.qs-main-content { margin-left: var(--sidebar-w); flex: 1; padding: 24px 28px; min-width: 0; }
+.qs-navbar {
+    position: fixed;
+    top: 0; right: 0;
+    left: var(--sidebar-w);
+    background: white;
+    height: var(--navbar-h);
+    border-bottom: 1px solid var(--border);
+    z-index: 1010;
+    transition: var(--transition);
+}
+
+.qs-main-content {
+    margin-left: var(--sidebar-w);
+    padding-top: calc(var(--navbar-h) + 40px); /* Increased padding to fix overlap */
+    padding-left: 30px;
+    padding-right: 30px;
+    transition: var(--transition);
+}
 
 /* ─── Page Header ────────────────────────────────────────────────── */
 .qs-page-header { margin-bottom: 20px; }
@@ -355,46 +287,107 @@ a { text-decoration: none; color: inherit; }
     margin: 0;
 }
 
-/* ─── Stat Cards ─────────────────────────────────────────────────── */
+/* ─── Executive Stat Cards (Thick Border Style) ────────────────── */
 .qs-stat-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    box-shadow: var(--shadow-sm);
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
     position: relative;
     overflow: hidden;
     transition: var(--transition);
+    border: 2px solid #e2e8f0; /* Default border */
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
 }
 
-.qs-stat-card:hover { box-shadow: var(--shadow); }
+.qs-stat-card:hover { transform: translateY(-5px); }
+
+/* Color Variations (Simple Thick Style) */
+.card-thick-simple { 
+    border: 5px solid #f1f5f9 !important; /* Thick Light Gray/White */
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+}
 
 .qs-stat-label {
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 0.65rem;
+    font-weight: 800;
     text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 8px;
     letter-spacing: 0.5px;
-    color: var(--text-muted);
-    margin-bottom: 6px;
 }
 
 .qs-stat-value {
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: var(--text-dark);
-    letter-spacing: -1px;
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--bcp-navy);
     line-height: 1;
 }
 
 .qs-stat-icon {
     position: absolute;
-    top: 18px; right: 18px;
-    font-size: 1.4rem;
-    color: var(--bcp-indigo);
-    opacity: 0.15;
+    top: 20px; right: 20px;
+    font-size: 1.8rem;
+    opacity: 0.3; /* Increased opacity to make it more visible */
+    color: var(--bcp-navy);
 }
 
-.qs-stat-card .border-start { border-color: var(--bcp-indigo) !important; }
+/* Window Pill Dot Animation */
+.live-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    position: relative;
+}
+.live-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid inherit;
+    animation: pulse 2s infinite;
+    opacity: 0.5;
+}
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ─── Soft Badges (BCP SMS Style) ──────────────────────────────── */
+.badge-soft-success {
+    background-color: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #bbf7d0;
+}
+.badge-soft-warning {
+    background-color: #fef3c7 !important;
+    color: #b45309 !important;
+    border: 1px solid #fde68a;
+}
+.badge-soft-danger {
+    background-color: #fee2e2 !important;
+    color: #b91c1c !important;
+    border: 1px solid #fecaca;
+}
+.badge-soft-primary {
+    background-color: #e0e7ff !important;
+    color: #4338ca !important;
+    border: 1px solid #c7d2fe;
+}
+.badge-soft-info {
+    background-color: #e0f2fe !important;
+    color: #0369a1 !important;
+    border: 1px solid #bae6fd;
+}
+
+.qs-badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    line-height: 1;
+}
 
 /* ─── Buttons ────────────────────────────────────────────────────── */
 .qs-btn-primary {

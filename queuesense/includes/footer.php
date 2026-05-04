@@ -1,12 +1,15 @@
+<!-- Footer (BCP Style) -->
+<footer class="qs-footer no-print">
+    <div class="container-fluid text-center py-3 text-muted small">
+        &copy; <?= date('Y') ?> Bestlink College of the Philippines — QueueSense Management System
+    </div>
+</footer>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- QueueSense App JS -->
-    <script src="<?= BASE_URL ?>/assets/js/app.js"></script>
+<!-- Bootstrap JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <?php if (isset($extra_scripts)): ?>
-        <?= $extra_scripts ?>
-    <?php endif; ?>
+<!-- Global App Logic -->
+<script src="<?= BASE_URL ?>/assets/js/app.js"></script>
 
 </body>
 </html>

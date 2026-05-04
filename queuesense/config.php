@@ -18,7 +18,7 @@ define('DB_PORT', 3306);
 define('SYSTEM_NAME',    'QueueSense');
 define('SYSTEM_TAGLINE', 'Smart Queue & Crowd Flow Management');
 define('SYSTEM_VERSION', '1.0.0');
-define('INSTITUTION',    'Polytechnic University of the Philippines'); // Change to yours
+define('INSTITUTION',    'Bestlink College of the Philippines');
 define('BASE_URL',       'http://localhost/lms/queuesense');
 
 // ─── Queue Settings ───────────────────────────────────────────────────────────
