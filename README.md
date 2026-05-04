@@ -1,5 +1,7 @@
 # QueueSense: AI-Assisted Smart Queue & Multi-Step Journey Management
 
+https://github.com/user-attachments/assets/abc54a1b-6bea-489a-8f8b-08ea1f540944
+
 [![Version](https://img.shields.io/badge/Version-1.2.0--Stable-green.svg)](https://github.com/ronaldllamo26/LMS)
 [![Tech Stack](https://img.shields.io/badge/Stack-PHP%208.x%20%7C%20MySQL%20%7C%20Bootstrap-orange.svg)]()
 [![Institution](https://img.shields.io/badge/Institution-Bestlink%20College%20of%20the%20Philippines-red.svg)](https://bcp.edu.ph/)
