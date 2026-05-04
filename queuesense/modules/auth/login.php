@@ -482,7 +482,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            class="bcp-input"
                            id="student_id"
                            name="student_id"
-                           placeholder="e.g. s230102815"
+                           placeholder="e.g. s230112617"
                            value="<?= clean($_POST['student_id'] ?? '') ?>"
                            autocomplete="username"
                            required>
@@ -581,7 +581,7 @@ function switchTab(type) {
 
     document.getElementById('idLabel').textContent = isStaff ? 'Employee ID' : 'Student ID';
     document.getElementById('student_id').placeholder =
-        isStaff ? 'e.g. STAFF-001 or ADMIN-001' : 'e.g. s230102815';
+        isStaff ? 'e.g. STAFF-001 or ADMIN-001' : 'e.g. s230112617';
 }
 
 function togglePassword() {

@@ -191,7 +191,7 @@ include __DIR__ . '/../includes/header.php';
         const activities = [
             'Ticket R-012 called at Window 1',
             'Staff Maria marked R-011 as Done',
-            'New student s230102815 joined Cashier queue',
+            'New student s230112617 joined Cashier queue',
             'Window 3 status changed to OPEN',
             'Student R-009 marked as No-Show'
         ];
