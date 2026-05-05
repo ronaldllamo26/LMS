@@ -19,7 +19,7 @@ $sql = "SELECT qe.*, qt.name AS queue_name, qt.prefix, qt.color, qt.icon,
         FROM queue_entries qe
         JOIN queue_types qt ON qt.id = qe.queue_type_id
         LEFT JOIN service_windows sw ON sw.id = qe.window_id
-        WHERE qe.user_id = ? AND qe.status IN ('waiting','serving')
+        WHERE qe.user_id = ? AND qe.status IN ('waiting','serving','pending')
           AND DATE(qe.joined_at) = CURDATE() ";
 
 if ($target_queue_id) {
@@ -111,6 +111,31 @@ $page_title = 'My Digital Ticket';
         .btn-download:hover { background: var(--bcp-blue); transform: translateY(-2px); }
 
         .dashed-line { border-top: 2px dashed #e2e8f0; margin: 30px 0; }
+
+        /* --- PENDING TICKET PROTECTOR --- */
+        .ticket-pending-lock { position: relative; }
+        .ticket-pending-lock .qr-wrap { 
+            filter: blur(12px) grayscale(1); 
+            opacity: 0.5;
+            pointer-events: none;
+            user-select: none;
+        }
+        .pending-overlay {
+            position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 100%; z-index: 20;
+            text-align: center;
+            padding: 0 20px;
+        }
+        .pending-lock-icon {
+            font-size: 2.5rem; color: #64748b; margin-bottom: 10px;
+        }
+        .pending-msg {
+            font-weight: 800; font-size: 0.85rem; color: #1e293b;
+            text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3;
+        }
+        
+        .ticket-grayscale { filter: grayscale(1); opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -127,7 +152,7 @@ $page_title = 'My Digital Ticket';
             <img src="<?= BASE_URL ?>/assets/images/bcp_logo.png" height="50">
         </div>
 
-        <div class="ticket-top" style="padding: 20px 30px;">
+        <div class="ticket-top <?= $ticket['status'] === 'pending' ? 'ticket-grayscale' : '' ?>" style="padding: 20px 30px;">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="text-start">
                     <div class="ticket-label" style="color:rgba(255,255,255,0.6); font-size: 0.6rem;">Service Category</div>
@@ -156,10 +181,19 @@ $page_title = 'My Digital Ticket';
                 </div>
             <?php endif; ?>
 
-            <div class="qr-wrap" id="qrcode-container" style="margin: 0 0 20px 0; padding: 15px; background: #ffffff; min-height: 160px; display: flex; align-items: center; justify-content: center;">
-                <!-- Fixed placeholder for the QR Image -->
-                <div id="qrcode-source" style="display:none;"></div>
-                <img id="finalQrImg" style="display:none; width: 130px; height: 130px; image-rendering: pixelated;">
+            <div class="<?= $ticket['status'] === 'pending' ? 'ticket-pending-lock' : '' ?>">
+                <?php if ($ticket['status'] === 'pending'): ?>
+                    <div class="pending-overlay">
+                        <div class="pending-lock-icon"><i class="bi bi-lock-fill"></i></div>
+                        <div class="pending-msg">Finish your current<br>station first</div>
+                    </div>
+                <?php endif; ?>
+                
+                <div class="qr-wrap" id="qrcode-container" style="margin: 0 0 20px 0; padding: 15px; background: #ffffff; min-height: 160px; display: flex; align-items: center; justify-content: center;">
+                    <!-- Fixed placeholder for the QR Image -->
+                    <div id="qrcode-source" style="display:none;"></div>
+                    <img id="finalQrImg" style="display:none; width: 130px; height: 130px; image-rendering: pixelated;">
+                </div>
             </div>
             
             <div class="row text-start g-3 mb-3">
@@ -173,7 +207,7 @@ $page_title = 'My Digital Ticket';
                             $status_label = 'SERVING';
                         } elseif ($ticket['status'] === 'pending') {
                             $status_class = 'status-pending';
-                            $status_label = 'RESERVED';
+                            $status_label = 'ON HOLD (STEP ' . ($display_step ?? '?') . ')';
                         }
                     ?>
                     <div class="status-pill <?= $status_class ?>" style="padding: 5px 12px; font-size: 0.75rem;">
@@ -295,6 +329,8 @@ $page_title = 'My Digital Ticket';
                 if (data.status !== '<?= h($ticket['status']) ?>' || 
                     data.ticket_id === null || 
                     (data.ticket_id !== null && data.ticket_id != currentId)) {
+                    // Only reload if the NEW ticket is NOT pending (meaning it's our turn) 
+                    // or if our current ticket was cancelled/done.
                     location.reload();
                 }
             });

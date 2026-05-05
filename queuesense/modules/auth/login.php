@@ -122,13 +122,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* ── LEFT: Form Panel ───────────────── */
         .bcp-left {
-            flex: 0 0 42%;
-            max-width: 42%;
-            background: #f4f5f9;
+            flex: 0 0 50%;
+            max-width: 50%;
+            background: #ffffff;
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 48px 52px;
+            justify-content: flex-end;
+            padding: 48px 60px;
         }
 
         .bcp-form-inner {
@@ -138,17 +138,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .bcp-logo {
             display: block;
-            width: 90px;
-            height: 90px;
+            width: 144px;
+            height: 144px;
             object-fit: contain;
-            margin: 0 auto 18px;
+            margin: 0 0 28px 0;
         }
 
         .bcp-sign-in-title {
-            font-size: 1.75rem;
-            font-weight: 800;
+            font-size: 2rem;
+            font-weight: 700;
             color: #1a1a2e;
-            margin-bottom: 22px;
+            margin-bottom: 28px;
+            text-align: left;
+            letter-spacing: -0.5px;
         }
 
         /* Tab switcher */
@@ -198,55 +200,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .bcp-input {
             width: 100%;
-            padding: 11px 14px;
-            border: 1.5px solid #d1d5db;
-            border-radius: 8px;
+            padding: 12px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
             font-size: 0.9rem;
             font-family: 'Inter', sans-serif;
             color: #1a1a2e;
             background: white;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: all 0.2s;
         }
 
         .bcp-input:focus {
             border-color: #1a237e;
-            box-shadow: 0 0 0 3px rgba(26,35,126,0.1);
+            box-shadow: 0 0 0 1px #1a237e;
         }
 
         .bcp-pw-toggle {
             position: absolute;
-            right: 12px;
+            right: 10px;
             top: 50%;
             transform: translateY(-50%);
-            background: none;
+            background: #f1f5f9;
             border: none;
-            color: #9ca3af;
+            color: #94a3b8;
             cursor: pointer;
-            font-size: 1rem;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .bcp-pw-toggle:hover {
+            background: #e2e8f0;
+            color: #64748b;
         }
 
         /* Submit button */
         .bcp-btn {
             width: 100%;
-            padding: 12px;
-            background: #5c6bc0;
+            padding: 14px;
+            background: #4f46e5;
             color: white;
             border: none;
             border-radius: 50px;
-            font-size: 0.95rem;
-            font-weight: 700;
+            font-size: 1rem;
+            font-weight: 600;
             font-family: 'Inter', sans-serif;
             cursor: pointer;
             transition: all 0.2s;
-            margin-top: 6px;
-            letter-spacing: 0.2px;
+            margin-top: 20px;
         }
 
         .bcp-btn:hover {
-            background: #3949ab;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(92,107,192,0.35);
+            background: #4338ca;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
 
         .bcp-btn:active { transform: translateY(0); }
@@ -315,12 +327,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* ── RIGHT: BCP Blue Hero Panel ────── */
         .bcp-right {
-            flex: 1;
+            flex: 0 0 50%;
+            max-width: 50%;
             background: linear-gradient(145deg, #1a237e 0%, #283593 50%, #1565c0 100%);
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 60px;
+            justify-content: flex-start;
+            padding: 48px 60px;
             position: relative;
             overflow: hidden;
         }
@@ -374,42 +387,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .bcp-right-content {
             position: relative;
             z-index: 2;
-            text-align: center;
+            text-align: left;
             color: white;
-            max-width: 420px;
+            max-width: 600px;
         }
 
         .bcp-right-title {
-            font-size: 2.4rem;
-            font-weight: 900;
-            line-height: 1.15;
-            margin-bottom: 16px;
-            letter-spacing: -0.5px;
+            font-size: 4.2rem;
+            font-weight: 700;
+            line-height: 1.05;
+            margin-bottom: 24px;
+            letter-spacing: -1.5px;
         }
 
         .bcp-right-sub {
-            font-size: 0.95rem;
-            opacity: 0.75;
+            font-size: 1.1rem;
+            opacity: 0.9;
             font-weight: 500;
-            margin-bottom: 32px;
+            margin-bottom: 0;
         }
 
         .bcp-right-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: rgba(255,255,255,0.7);
-            font-size: 0.85rem;
+            display: inline-block;
+            color: white;
+            font-size: 1.1rem;
             font-weight: 500;
             text-decoration: none;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 50px;
-            padding: 8px 20px;
-            transition: all 0.2s;
+            margin-top: 10px;
+            transition: opacity 0.2s;
         }
 
         .bcp-right-link:hover {
-            background: rgba(255,255,255,0.1);
+            opacity: 0.8;
             color: white;
         }
 
@@ -451,10 +460,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  onerror="this.style.display='none'; document.getElementById('bcp-logo-fallback').style.display='flex';">
 
             <!-- Fallback icon if image fails -->
-            <div id="bcp-logo-fallback" style="display:none; width:80px; height:80px;
+            <div id="bcp-logo-fallback" style="display:none; width:100px; height:100px;
                  background:linear-gradient(135deg,#1a237e,#3949ab); border-radius:12px;
-                 align-items:center; justify-content:center; margin:0 auto 18px;">
-                <i class="bi bi-person-lines-fill text-white" style="font-size:2rem;"></i>
+                 align-items:center; justify-content:center; margin:0 0 24px 0;">
+                <i class="bi bi-person-lines-fill text-white" style="font-size:2.5rem;"></i>
             </div>
 
             <h1 class="bcp-sign-in-title">Sign in</h1>
@@ -493,7 +502,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            class="bcp-input"
                            id="student_id"
                            name="student_id"
-                           placeholder="e.g. s230112617"
+                           placeholder=""
                            value="<?= clean($_POST['student_id'] ?? '') ?>"
                            autocomplete="username"
                            required>
@@ -510,7 +519,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    class="bcp-input"
                                    id="password"
                                    name="password"
-                                   placeholder="Enter your password"
+                                   placeholder=""
                                    autocomplete="current-password"
                                    required
                                    style="padding-right:42px;">
@@ -533,11 +542,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
 
-            <!-- Institution footer -->
-            <div class="text-center mt-4" style="font-size:0.72rem; color:#9ca3af;">
-                <i class="bi bi-building me-1"></i>
-                Bestlink College of the Philippines
-            </div>
+
 
         </div>
     </div><!-- /.bcp-left -->
@@ -561,15 +566,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Main content -->
         <div class="bcp-right-content">
             <div class="bcp-right-title">
-                QueueSense<br>Smart Queue <span onclick="switchTab('student')" style="cursor: default; user-select: none;">S</span>yste<span onclick="switchTab('staff')" style="cursor: default; user-select: none;">m</span>
+                QueueSense<br>Smart Queue Sy<span onclick="switchTab('student')" style="cursor: default; user-select: none;">s</span>te<span onclick="switchTab('staff')" style="cursor: default; user-select: none;">m</span>
             </div>
-            <p class="bcp-right-sub">
-                AI-Assisted Queue & Crowd Flow Management<br>
-                for Bestlink College of the Philippines
-            </p>
             <a href="https://bcp.edu.ph" target="_blank" class="bcp-right-link">
-                <i class="bi bi-globe2"></i>
-                Student Admission — Click here
+                Student admission click here
             </a>
         </div>
 
@@ -592,8 +592,7 @@ function switchTab(type) {
     document.getElementById('password').required = true;
 
     document.getElementById('idLabel').textContent = isStaff ? 'Employee ID' : 'Student ID';
-    document.getElementById('student_id').placeholder =
-        isStaff ? 'e.g. STAFF-001 or ADMIN-001' : 'e.g. s230112617';
+    document.getElementById('student_id').placeholder = "";
 }
 
 function togglePassword() {

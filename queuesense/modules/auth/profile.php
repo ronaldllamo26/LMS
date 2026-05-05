@@ -269,16 +269,52 @@ $active_page = 'profile';
         padding: 12px 28px; border-radius: 50px; font-weight: 700; font-size: 0.95rem;
     }
 
-    /* Cropper Modal */
-    .cropper-container-custom { width: 100%; height: 450px; background: #000; }
-    .cropper-view-box, .cropper-face { border-radius: 50%; }
-
-    .settings-content-wrapper {
-        padding: 40px 60px;
-        flex: 1;
+    /* Stable Square Cropper (Facebook Dark Theme) */
+    #cropModal .modal-content { border-radius: 12px; border: none; box-shadow: 0 12px 28px rgba(0,0,0,0.3); overflow: hidden; }
+    #cropModal .modal-header { border-bottom: 1px solid #dddfe2; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; }
+    #cropModal .modal-title { font-size: 1.15rem; font-weight: 700; color: #1c1e21; margin: 0 auto; }
+    #cropModal .btn-close { background-color: #ebedf0; border-radius: 50%; padding: 8px; opacity: 1; }
+    
+    #cropModal .modal-body { padding: 0; background: #000; }
+    
+    .fb-crop-viewport {
+        position: relative;
+        width: 100%;
+        height: 400px;
+        background: #000;
+        overflow: hidden;
     }
 
-    /* ... white card and other styles remain same ... */
+    /* Clean Library UI */
+    .cropper-view-box { outline: 1px solid rgba(255, 255, 255, 0.5) !important; }
+    .cropper-line, .cropper-point, .cropper-center { display: none !important; }
+    .cropper-modal { opacity: 0.6 !important; background-color: #000 !important; }
+
+    .fb-controls-area { padding: 20px 24px; background: #fff; }
+    .fb-zoom-bar { display: flex; align-items: center; justify-content: center; gap: 15px; max-width: 320px; margin: 0 auto 10px; }
+    .fb-zoom-bar i { font-size: 1.4rem; color: #65676b; }
+    
+    .fb-slider {
+        flex: 1; height: 4px; background: #dddfe2; border-radius: 2px;
+        outline: none; -webkit-appearance: none; cursor: pointer;
+    }
+    .fb-slider::-webkit-slider-thumb {
+        -webkit-appearance: none; width: 22px; height: 22px; background: #1877f2;
+        border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .fb-privacy-note { display: flex; align-items: center; justify-content: center; gap: 8px; color: #65676b; font-size: 0.85rem; }
+    .modal-footer-fb { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #dddfe2; background: #fff; }
+    .btn-fb-cancel { background: none; border: none; color: #1877f2; font-weight: 600; padding: 8px 16px; font-size: 0.95rem; }
+    .btn-fb-save { background: #72B944; color: white; border: none; font-weight: 700; padding: 10px 45px; border-radius: 6px; font-size: 0.95rem; }
+
+    /* Hide the original image ghosting */
+    #imageToCrop { opacity: 0 !important; }
+    .cropper-hidden { display: none !important; }
+
+
+
+
 </style>
 
 <div class="qs-main-wrapper">
@@ -511,26 +547,30 @@ $active_page = 'profile';
     </div>
 </div>
 
-<!-- CROP MODAL -->
+<!-- CROP MODAL (FACEBOOK STYLE) -->
 <div class="modal fade" id="cropModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 20px; overflow: hidden; border: none;">
-            <div class="modal-header border-0 p-4">
-                <h5 class="modal-title fw-800">Edit image</h5>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Choose profile picture</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0">
-                <div class="cropper-container-custom">
+            <div class="modal-body">
+                <div class="fb-crop-viewport">
                     <img id="imageToCrop" src="" style="display: block; max-width: 100%;">
                 </div>
-                <div class="crop-controls p-4">
-                    <div class="crop-slider-label">Zoom</div>
-                    <input type="range" class="crop-slider" id="zoomSlider" min="0.1" max="3" step="0.01" value="1">
+                <div class="fb-controls-area">
+                    <div class="fb-zoom-bar">
+                        <i class="bi bi-dash"></i>
+                        <input type="range" class="fb-slider" id="zoomSlider" min="0.1" max="3" step="0.01" value="1">
+                        <i class="bi bi-plus"></i>
+                    </div>
+                    <div class="fb-privacy-note"><i class="bi bi-globe-americas"></i> Your profile picture is public.</div>
                 </div>
             </div>
-            <div class="modal-footer border-0 p-4">
-                <button type="button" class="btn btn-bcp-cancel" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-bcp-save" id="saveCropBtn">Save changes</button>
+            <div class="modal-footer-fb">
+                <button type="button" class="btn-fb-cancel" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-fb-save" id="saveCropBtn">Save</button>
             </div>
         </div>
     </div>
@@ -543,66 +583,42 @@ $active_page = 'profile';
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let cropper;
-    const avatarTrigger = document.getElementById('avatarTrigger');
     const avatarInput = document.getElementById('avatarInput');
     const imageToCrop = document.getElementById('imageToCrop');
-    const cropModalElement = document.getElementById('cropModal');
     const zoomSlider = document.getElementById('zoomSlider');
-    const saveCropBtn = document.getElementById('saveCropBtn');
-    const bsModal = new bootstrap.Modal(cropModalElement);
+    const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
 
-    if (avatarTrigger) {
-        avatarTrigger.addEventListener('click', () => avatarInput.click());
-    }
+    document.getElementById('avatarTrigger').onclick = () => avatarInput.click();
 
-    avatarInput.addEventListener('change', function(e) {
-        const files = e.target.files;
-        if (files && files.length > 0) {
+    avatarInput.onchange = (e) => {
+        if (e.target.files && e.target.files[0]) {
             const reader = new FileReader();
-            reader.onload = function(event) {
-                imageToCrop.src = event.target.result;
-                bsModal.show();
+            reader.onload = (ev) => {
+                imageToCrop.src = ev.target.result;
+                cropModal.show();
             };
-            reader.readAsDataURL(files[0]);
+            reader.readAsDataURL(e.target.files[0]);
         }
-    });
+    };
 
-    cropModalElement.addEventListener('shown.bs.modal', function() {
+    document.getElementById('cropModal').addEventListener('shown.bs.modal', () => {
         if (cropper) cropper.destroy();
         cropper = new Cropper(imageToCrop, {
-            aspectRatio: 1,
-            viewMode: 1,
-            dragMode: 'move',
-            autoCropArea: 1,
-            restore: false,
-            guides: false,
-            center: false,
-            highlight: false,
-            cropBoxMovable: false,
-            cropBoxResizable: false,
-            toggleDragModeOnDblclick: false,
+            aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 1,
+            guides: false, center: false, highlight: false, cropBoxMovable: false, cropBoxResizable: false,
+            toggleDragModeOnDblclick: false, background: false,
             ready: function() { zoomSlider.value = 1; }
         });
     });
 
-    cropModalElement.addEventListener('hidden.bs.modal', function() {
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
-        }
-        avatarInput.value = '';
-    });
+    zoomSlider.oninput = (e) => { if (cropper) cropper.zoomTo(e.target.value); };
 
-    zoomSlider.addEventListener('input', function() {
-        if (cropper) cropper.zoomTo(this.value);
-    });
-
-    saveCropBtn.addEventListener('click', function() {
+    document.getElementById('saveCropBtn').onclick = () => {
         if (!cropper) return;
         const canvas = cropper.getCroppedCanvas({ width: 400, height: 400 });
-        document.getElementById('croppedAvatarInput').value = canvas.toDataURL('image/jpeg');
+        document.getElementById('croppedAvatarInput').value = canvas.toDataURL('image/jpeg', 0.9);
         document.getElementById('croppedForm').submit();
-    });
+    };
 });
 </script>
 

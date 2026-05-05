@@ -79,28 +79,28 @@ include __DIR__ . '/../includes/header.php';
                 <div class="col-md-3">
                     <div class="qs-stat-card card-thick-simple">
                         <div class="qs-stat-label">Total Served Today</div>
-                        <div class="qs-stat-value"><?= $total_served ?></div>
+                        <div id="stat-served" class="qs-stat-value"><?= $total_served ?></div>
                         <i class="bi bi-people qs-stat-icon"></i>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="qs-stat-card card-thick-simple">
                         <div class="qs-stat-label">Students Waiting</div>
-                        <div class="qs-stat-value"><?= $total_waiting ?></div>
+                        <div id="stat-waiting" class="qs-stat-value"><?= $total_waiting ?></div>
                         <i class="bi bi-hourglass-split qs-stat-icon"></i>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="qs-stat-card card-thick-simple">
                         <div class="qs-stat-label">Active Windows</div>
-                        <div class="qs-stat-value"><?= $active_windows ?></div>
+                        <div id="stat-active" class="qs-stat-value"><?= $active_windows ?></div>
                         <i class="bi bi-door-open qs-stat-icon"></i>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="qs-stat-card card-thick-simple">
                         <div class="qs-stat-label">Avg Service Time</div>
-                        <div class="qs-stat-value"><?= $avg_time ?> <small class="fs-6">min</small></div>
+                        <div id="stat-avg" class="qs-stat-value"><?= $avg_time ?> <small class="fs-6">min</small></div>
                         <i class="bi bi-stopwatch qs-stat-icon"></i>
                     </div>
                 </div>
@@ -111,7 +111,7 @@ include __DIR__ . '/../includes/header.php';
                 <div class="col-md-8">
                     <div class="qs-card mb-4">
                         <h5 class="fw-800 mb-4"><i class="bi bi-grid-3x3-gap me-2"></i>Service Window Monitor</h5>
-                        <div class="row g-3">
+                        <div class="row g-3" id="windowGrid">
                             <?php foreach($windows as $w): ?>
                             <div class="col-md-6">
                                 <div class="p-3 border rounded-4 d-flex align-items-center gap-3 bg-light bg-opacity-50">
@@ -185,29 +185,70 @@ include __DIR__ . '/../includes/header.php';
         }
     });
 
-    // Mock Feed
-    function updateFeed() {
-        const feed = document.getElementById('activityFeed');
-        const activities = [
-            'Ticket R-012 called at Window 1',
-            'Staff Maria marked R-011 as Done',
-            'New student s230112617 joined Cashier queue',
-            'Window 3 status changed to OPEN',
-            'Student R-009 marked as No-Show'
-        ];
-        let html = '';
-        activities.forEach(a => {
-            html += `<div class="d-flex gap-3 mb-3 pb-3 border-bottom border-light">
-                        <div class="text-navy"><i class="bi bi-dot fs-4"></i></div>
-                        <div>
-                            <div class="fw-bold small">${a}</div>
-                            <div class="text-muted extra-small" style="font-size:0.7rem;">Just now</div>
-                        </div>
-                    </div>`;
-        });
-        feed.innerHTML = html;
+    // Real-time Polling
+    function updateAdminData() {
+        fetch('<?= BASE_URL ?>/api/get_admin_stats.php')
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) return;
+
+                // 1. Update Stats
+                document.getElementById('stat-served').textContent = data.stats.total_served;
+                document.getElementById('stat-waiting').textContent = data.stats.total_waiting;
+                document.getElementById('stat-active').textContent = data.stats.active_windows;
+                document.getElementById('stat-avg').innerHTML = `${data.stats.avg_time} <small class="fs-6">min</small>`;
+
+                // 2. Update Windows
+                const grid = document.getElementById('windowGrid');
+                let gridHtml = '';
+                data.windows.forEach(w => {
+                    const dotClass = w.status === 'open' ? '' : 'opacity-25';
+                    const dotColor = w.status === 'open' ? '#10b981' : '#94a3b8';
+                    gridHtml += `
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-4 d-flex align-items-center gap-3 bg-light bg-opacity-50">
+                                <div class="live-dot ${dotClass}" style="background:${dotColor}"></div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-800 small">${escapeHtml(w.window_label)}</div>
+                                    <div class="text-muted" style="font-size:0.7rem;">${escapeHtml(w.queue_name || 'Unassigned')}</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-900 text-navy">${w.ticket_number || 'IDLE'}</div>
+                                    <div class="text-muted extra-small" style="font-size:0.6rem;">${escapeHtml(w.staff_name || 'Unassigned')}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                grid.innerHTML = gridHtml;
+
+                // 3. Update Feed
+                const feed = document.getElementById('activityFeed');
+                let feedHtml = '';
+                data.logs.forEach(log => {
+                    feedHtml += `
+                        <div class="d-flex gap-3 mb-3 pb-3 border-bottom border-light">
+                            <div class="text-navy"><i class="bi bi-dot fs-4"></i></div>
+                            <div>
+                                <div class="fw-bold small">${escapeHtml(log.details || log.action)}</div>
+                                <div class="text-muted extra-small" style="font-size:0.7rem;">${log.created_at}</div>
+                            </div>
+                        </div>`;
+                });
+                feed.innerHTML = feedHtml;
+            })
+            .catch(err => console.error("Admin Sync Error:", err));
     }
-    updateFeed();
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Initial load and then poll
+    setInterval(updateAdminData, 3000);
+    updateAdminData();
 
     // BCP Institutional Loading Chain (Splash -> Syncing)
     window.HAS_CUSTOM_LOADER = true;
