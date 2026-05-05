@@ -131,7 +131,7 @@ $page_title = 'Public Queue Display';
     <footer class="display-footer">
         <div class="ticker">
             Welcome to Bestlink College of the Philippines. Please keep your QR code ready. | 
-            Visit the Guidance Office for Counseling. | Admissions are open for Academic Year 2024-2025.
+            Visit the Guidance Office for Counseling. | Admissions are open for Academic Year 2025-2026.
         </div>
     </footer>
 
