@@ -24,12 +24,13 @@ if ($url_error === 'timeout')         $error = 'You were signed out due to inact
 if ($url_error === 'unauthorized')    $error = 'You do not have permission to access that page.';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $student_id = strtolower(trim($_POST['student_id'] ?? ''));
+    require_csrf();
+    $student_id = strict_input($_POST['student_id'] ?? '', 'student_id');
     $password   = $_POST['password'] ?? '';
     $login_type = $_POST['login_type'] ?? 'student';
 
     if (empty($student_id)) {
-        $error = 'Please enter your Student ID.';
+        $error = 'Username or password is invalid.';
     } else {
         $db   = db_connect();
         $sql  = "SELECT id, student_id, full_name, role, department, password_hash, is_active
@@ -40,45 +41,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->get_result()->fetch_assoc();
         $stmt->close();
 
-        if (!$user) {
-            $error = 'Student ID not found. Please check your ID and try again.';
-        } elseif (!$user['is_active']) {
-            $error = 'Your account has been deactivated. Contact the administrator.';
-        } elseif ($user['role'] === 'student') {
-            if ($login_type === 'staff') {
-                $error = 'This is a Student ID. Please use the Student tab.';
-            } else {
-                if (empty($password)) {
-                    $error = 'Please enter your password.';
-                } elseif (!password_verify($password, $user['password_hash'] ?? '')) {
-                    $error = 'Incorrect password. Please try again.';
-                } else {
-                    session_regenerate_id(true);
-                    $_SESSION['user']          = $user;
-                    $_SESSION['last_activity'] = time();
-                    log_action('LOGIN', "Student login: {$user['student_id']}");
-                    redirect(BASE_URL . '/modules/queue/status.php');
-                }
-            }
+        if (!$user || !$user['is_active']) {
+            $error = 'Username or password is invalid.';
         } else {
-            if ($login_type === 'student') {
-                $error = 'This is a Staff/Admin ID. Please use the Staff / Admin tab.';
+            $is_student = ($user['role'] === 'student');
+            $requested_student = ($login_type === 'student');
+
+            if ($is_student !== $requested_student) {
+                $error = 'Username or password is invalid.';
+            } elseif (empty($password) || !password_verify($password, $user['password_hash'] ?? '')) {
+                $error = 'Username or password is invalid.';
             } else {
-            if (empty($password)) {
-                $error = 'Please enter your password.';
-            } elseif (!password_verify($password, $user['password_hash'] ?? '')) {
-                $error = 'Incorrect password. Please try again.';
-                log_action('LOGIN_FAILED', "Failed login: {$student_id}");
-            } else {
-                session_regenerate_id(true);
+                // session_regenerate_id(true);
                 $_SESSION['user']          = $user;
                 $_SESSION['last_activity'] = time();
+                $_SESSION['csrf_token']    = bin2hex(random_bytes(32));
                 log_action('LOGIN', ucfirst($user['role']) . " login: {$user['student_id']}");
-                if ($user['role'] === 'admin') redirect(BASE_URL . '/admin/index.php');
-                redirect(BASE_URL . '/staff/index.php');
+                
+                $redirect = BASE_URL . '/modules/queue/status.php';
+                $_SESSION['show_bcp_loading'] = true;
+                
+                if ($user['role'] === 'admin') $redirect = BASE_URL . '/admin/index.php';
+                if ($user['role'] === 'staff') $redirect = BASE_URL . '/staff/index.php';
+
+                if (isset($_POST['ajax'])) {
+                    echo json_encode(['success' => true, 'redirect' => $redirect]);
+                    exit;
                 }
+                redirect($redirect);
             }
         }
+    }
+    
+    if (isset($_POST['ajax'])) {
+        echo json_encode(['success' => false, 'error' => $error]);
+        exit;
     }
 }
 ?>
@@ -424,6 +421,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             .bcp-right-title { font-size: 1.6rem; }
             body { overflow: auto; }
         }
+
+
+        /* Shake Animation */
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+            transform: translate3d(0, 0, 0);
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
     </style>
 </head>
 <body>
@@ -463,7 +473,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <!-- Error -->
             <?php if ($error): ?>
-            <div class="bcp-error" id="loginError">
+            <div class="bcp-error shake" id="loginError">
                 <i class="bi bi-exclamation-circle-fill flex-shrink-0 mt-1"></i>
                 <span><?= htmlspecialchars($error) ?></span>
             </div>
@@ -471,6 +481,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <!-- Form -->
             <form method="POST" action="" id="loginForm" novalidate>
+                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                 <input type="hidden" name="login_type" id="login_type" value="<?= htmlspecialchars($login_type ?? 'student') ?>">
 
                 <!-- Student ID -->
@@ -516,6 +527,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <button type="submit" class="bcp-btn" id="submitBtn">
                     <span id="submitLabel">Sign in</span>
+                    <div id="submitSpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
                 </button>
             </form>
 
@@ -604,6 +616,72 @@ if (errEl) setTimeout(() => {
     errEl.style.opacity = '0';
     setTimeout(() => errEl.remove(), 500);
 }, 5000);
+
+// Splash Logic
+const splash = document.getElementById('splash');
+const loginForm = document.getElementById('loginForm');
+const loginError = document.getElementById('loginError') || document.createElement('div');
+const submitBtn = document.getElementById('submitBtn');
+const submitLabel = document.getElementById('submitLabel');
+const submitSpinner = document.getElementById('submitSpinner');
+
+// Initial Load Splash (Fades out)
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        splash.classList.add('hidden');
+    }, 1500);
+});
+
+// Ensure error container exists
+if (!document.getElementById('loginError')) {
+    loginError.id = 'loginError';
+    loginError.className = 'bcp-error d-none';
+    loginForm.parentNode.insertBefore(loginError, loginForm);
+}
+
+loginForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Reset state
+    loginError.classList.add('d-none');
+    loginError.classList.remove('shake');
+    
+    // Show button spinner
+    submitBtn.disabled = true;
+    submitLabel.classList.add('d-none');
+    submitSpinner.classList.remove('d-none');
+    
+    const formData = new FormData(this);
+    formData.append('ajax', '1');
+
+    try {
+        const response = await fetch('', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            // Redirect immediately
+            window.location.href = data.redirect;
+        } else {
+            // Error handling
+            loginError.innerHTML = `<span>${data.error}</span>`;
+            loginError.classList.remove('d-none');
+            loginError.classList.add('shake');
+            
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitLabel.classList.remove('d-none');
+            submitSpinner.classList.add('d-none');
+        }
+    } catch (err) {
+        console.error('Login error:', err);
+        submitBtn.disabled = false;
+        submitLabel.classList.remove('d-none');
+        submitSpinner.classList.add('d-none');
+    }
+});
 </script>
 
 </body>

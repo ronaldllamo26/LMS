@@ -9,14 +9,36 @@ require_once __DIR__ . '/../includes/functions.php';
 
 header('Content-Type: application/json');
 
-if (!is_logged_in() || !has_role('staff')) {
+if (!is_logged_in() || (!has_role('staff') && !has_role('admin'))) {
     echo json_encode(['error' => 'Unauthorized access.']);
     exit;
 }
 
 $db      = db_connect();
 $user_id = current_user()['id'];
-$action  = $_GET['action'] ?? $_POST['action'] ?? '';
+
+// State-changing actions MUST use POST and have CSRF token
+$is_post = ($_SERVER['REQUEST_METHOD'] === 'POST');
+$action  = $_POST['action'] ?? $_GET['action'] ?? '';
+
+if ($action !== 'get_status' && !$is_post) {
+    echo json_encode(['error' => 'State-changing actions must use POST.']);
+    exit;
+}
+
+if ($is_post) {
+    // Note: We don't use require_csrf() here because we want to return JSON error
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $log = "\n--- CSRF FAILURE [" . date('Y-m-d H:i:s') . "] ---\n";
+        $log .= "POST Token: " . ($_POST['csrf_token'] ?? 'MISSING') . "\n";
+        $log .= "SESSION Token: " . ($_SESSION['csrf_token'] ?? 'MISSING') . "\n";
+        $log .= "Session ID: " . session_id() . "\n";
+        file_put_contents(__DIR__ . '/../csrf_debug.log', $log, FILE_APPEND);
+        
+        echo json_encode(['error' => 'CSRF token validation failed.']);
+        exit;
+    }
+}
 
 // 1. Find the window assigned to this staff
 $sql_window = "SELECT sw.*, qt.name as queue_name, qt.prefix 

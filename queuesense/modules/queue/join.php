@@ -55,6 +55,7 @@ if ($total_today >= $queue['daily_limit']) {
 // ─── Process join (POST confirmation) ─────────────────────────────────────
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_join'])) {
+    require_csrf();
 
     // Get next position number
     $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM queue_entries
@@ -283,6 +284,7 @@ $no_sidebar = true; // Force full width layout
 
                         <!-- Join form -->
                         <form method="POST" action="">
+                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                             <!-- Priority checkbox -->
                             <div class="d-flex align-items-center gap-2 mb-4 p-3"
                                  style="background:#fafbfc; border-radius:10px; border:1px solid #e8edf3;">

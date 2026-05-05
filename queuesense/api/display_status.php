@@ -17,11 +17,22 @@ $sql = "SELECT qe.ticket_number, qe.called_at, qe.call_count, sw.window_label, q
 $result = $db->query($sql);
 $serving = $result->fetch_all(MYSQLI_ASSOC);
 
+// Get Next in Line for each department
+$waiting_sql = "SELECT qe.ticket_number, qt.name as queue_name
+                FROM queue_entries qe
+                JOIN queue_types qt ON qt.id = qe.queue_type_id
+                WHERE qe.status = 'waiting'
+                  AND DATE(qe.joined_at) = CURDATE()
+                ORDER BY qe.id ASC
+                LIMIT 10";
+$waiting = $db->query($waiting_sql)->fetch_all(MYSQLI_ASSOC);
+
 // Create a unique checksum based on ticket numbers and their call counts
-$checksum = md5(json_encode($serving));
+$checksum = md5(json_encode($serving) . json_encode($waiting));
 
 echo json_encode([
     'serving' => $serving,
+    'waiting' => $waiting,
     'checksum' => $checksum
 ]);
 ?>

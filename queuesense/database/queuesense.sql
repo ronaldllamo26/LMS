@@ -21,6 +21,7 @@ CREATE TABLE users (
     department    VARCHAR(100) DEFAULT NULL,
     qr_token      VARCHAR(64) DEFAULT NULL UNIQUE,
     is_active     TINYINT(1) NOT NULL DEFAULT 1,
+    avatar        VARCHAR(255) DEFAULT NULL,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_student_id (student_id),
     INDEX idx_role (role)
@@ -69,6 +70,7 @@ CREATE TABLE queue_entries (
     called_at     DATETIME DEFAULT NULL,
     served_at     DATETIME DEFAULT NULL,
     wait_minutes  INT DEFAULT NULL,
+    call_count    INT NOT NULL DEFAULT 0,
     FOREIGN KEY (user_id)       REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (queue_type_id) REFERENCES queue_types(id) ON DELETE CASCADE,
     FOREIGN KEY (window_id)     REFERENCES service_windows(id) ON DELETE SET NULL,

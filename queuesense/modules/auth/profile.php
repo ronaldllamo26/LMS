@@ -41,6 +41,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cropped_avatar'])) {
     }
 }
 
+// Handle Password Change
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
+    require_csrf();
+    
+    $current_pass = $_POST['current_password'] ?? '';
+    $new_pass     = $_POST['new_password'] ?? '';
+    $confirm_pass = $_POST['confirm_password'] ?? '';
+
+    // Verify current password
+    if (!password_verify($current_pass, $user['password_hash'])) {
+        header("Location: profile.php?tab=security&error=wrong_current");
+        exit;
+    }
+
+    // Validate new password
+    if ($new_pass !== $confirm_pass) {
+        header("Location: profile.php?tab=security&error=mismatch");
+        exit;
+    }
+
+    if (strlen($new_pass) < 8) {
+        header("Location: profile.php?tab=security&error=too_short");
+        exit;
+    }
+
+    $hashed = password_hash($new_pass, PASSWORD_DEFAULT);
+    $stmt = $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+    $stmt->bind_param("si", $hashed, $user['id']);
+    
+    if ($stmt->execute()) {
+        log_action('PASSWORD_CHANGED', "User changed their password.");
+        header("Location: profile.php?tab=security&success=password_updated");
+    } else {
+        header("Location: profile.php?tab=security&error=db_error");
+    }
+    $stmt->close();
+    exit;
+}
+
+
+
 $page_title = 'SMS Profile';
 $active_page = 'profile';
 ?>
@@ -409,19 +450,38 @@ $active_page = 'profile';
                                 <p class="section-subtext">All fields with * are required.</p>
                             </div>
 
-                            <div class="row g-4" style="max-width: 600px;">
+                            <?php if (isset($_GET['error'])): ?>
+                                <div class="alert alert-danger py-2 px-3 small mb-4" style="border-radius:10px;">
+                                    <?php
+                                        if($_GET['error'] === 'wrong_current') echo "Incorrect current password.";
+                                        elseif($_GET['error'] === 'mismatch') echo "New passwords do not match.";
+                                        elseif($_GET['error'] === 'too_short') echo "Password must be at least 8 characters.";
+                                        else echo "An error occurred. Please try again.";
+                                    ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (isset($_GET['success'])): ?>
+                                <div class="alert alert-success py-2 px-3 small mb-4" style="border-radius:10px;">
+                                    Password updated successfully.
+                                </div>
+                            <?php endif; ?>
+
+                            <form method="POST" action="profile.php?tab=security">
+                                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                <div class="row g-4" style="max-width: 600px;">
                                 <div class="col-12 mb-3">
                                     <label class="form-label-bcp">Current password *</label>
                                     <div class="input-wrap-bcp">
                                         <i class="bi bi-key input-icon-bcp"></i>
-                                        <input type="password" class="input-bcp" placeholder="">
+                                        <input type="password" name="current_password" class="input-bcp" placeholder="" required>
                                     </div>
                                 </div>
                                 <div class="col-12 mb-3">
                                     <label class="form-label-bcp">New password *</label>
                                     <div class="input-wrap-bcp">
                                         <i class="bi bi-key input-icon-bcp"></i>
-                                        <input type="password" class="input-bcp" placeholder="">
+                                        <input type="password" name="new_password" class="input-bcp" placeholder="" required>
                                     </div>
                                     <p class="password-req-box">Minimum 8 characters, at least one number, at least one lower case letter, at least one upper case letter, at least one non-alphanumeric character</p>
                                 </div>
@@ -429,17 +489,18 @@ $active_page = 'profile';
                                     <label class="form-label-bcp">Confirm password *</label>
                                     <div class="input-wrap-bcp">
                                         <i class="bi bi-key input-icon-bcp"></i>
-                                        <input type="password" class="input-bcp" placeholder="">
+                                        <input type="password" name="confirm_password" class="input-bcp" placeholder="" required>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-3 mt-5 pt-4 border-top">
-                                <button class="btn btn-bcp-cancel">Cancel</button>
-                                <button class="btn btn-bcp-save">
+                                <button type="button" onclick="window.location.href='profile.php'" class="btn btn-bcp-cancel">Cancel</button>
+                                <button type="submit" name="change_password" class="btn btn-bcp-save">
                                     <i class="bi bi-save"></i> Save
                                 </button>
                             </div>
+                        </form>
                         <?php endif; ?>
                     </div>
                 </div>

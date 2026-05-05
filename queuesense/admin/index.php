@@ -61,7 +61,7 @@ include __DIR__ . '/../includes/header.php';
 <main class="qs-main-layout">
     <?php include __DIR__ . '/../includes/sidebar.php'; ?>
     
-    <div class="qs-main-content" style="padding: calc(var(--navbar-h) + 20px) 0 0 0 !important; display: flex; flex-direction: column; min-height: 100vh;">
+    <div class="qs-main-content" style="display: flex; flex-direction: column; min-height: 100vh;">
         <div class="p-4 flex-grow-1">
             <!-- Page Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -208,6 +208,24 @@ include __DIR__ . '/../includes/header.php';
         feed.innerHTML = html;
     }
     updateFeed();
+
+    // BCP Institutional Loading Chain (Splash -> Syncing)
+    window.HAS_CUSTOM_LOADER = true;
+    window.addEventListener('load', () => {
+        const splash = document.getElementById('splash');
+        const syncOverlay = document.getElementById('syncOverlay');
+        
+        if (splash && syncOverlay) {
+            splash.classList.remove('hidden');
+            setTimeout(() => {
+                splash.classList.add('hidden');
+                syncOverlay.classList.remove('hidden');
+                setTimeout(() => {
+                    syncOverlay.classList.add('hidden');
+                }, 2000);
+            }, 2000);
+        }
+    });
 </script>
 
 <?php // End of file ?>

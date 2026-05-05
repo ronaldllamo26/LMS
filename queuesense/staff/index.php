@@ -27,7 +27,7 @@ $stmt->close();
 ?>
 
 <main class="qs-main-layout">
-    <div class="qs-main-content" style="padding: calc(var(--navbar-h) + 20px) 0 0 0 !important; display: flex; flex-direction: column; min-height: 100vh;">
+    <div class="qs-main-content" style="display: flex; flex-direction: column; min-height: 100vh;">
         <div class="p-4 flex-grow-1">
             <!-- Page Header -->
             <div class="qs-page-header d-flex align-items-center justify-content-between">
@@ -183,19 +183,20 @@ $stmt->close();
 .priority-tag { font-size: 0.6rem; background: #fee2e2; color: #b91c1c; padding: 1px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; }
 </style>
 
-<?php
-$extra_scripts = "
 <script>
 let currentServingId = null;
 
 // Live Clock
 setInterval(() => {
-    document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit', 
-        hour12: true 
-    });
+    const clockEl = document.getElementById('live-clock');
+    if (clockEl) {
+        clockEl.textContent = new Date().toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit', 
+            hour12: true 
+        });
+    }
 }, 1000);
 
 /**
@@ -241,7 +242,7 @@ async function updateDashboard() {
         // 3. Update Waiting List
         const listContainer = document.getElementById('waiting-list');
         if (data.waiting_list.length === 0) {
-            listContainer.innerHTML = '<div class=\"text-center py-5 text-muted\">No one is waiting in queue.</div>';
+            listContainer.innerHTML = '<div class="text-center py-5 text-muted">No one is waiting in queue.</div>';
         } else {
             listContainer.innerHTML = '';
             data.waiting_list.forEach(item => {
@@ -249,10 +250,10 @@ async function updateDashboard() {
                 li.className = 'list-group-item d-flex align-items-center justify-content-between';
                 li.innerHTML = `
                     <div>
-                        <div class=\"fw-bold mb-0\">\${item.ticket_number}</div>
-                        <div class=\"text-muted small\">\${item.full_name}</div>
+                        <div class="fw-bold mb-0">${item.ticket_number}</div>
+                        <div class="text-muted small">${item.full_name}</div>
                     </div>
-                    \${item.priority == 1 ? '<span class=\"priority-tag\">Priority</span>' : ''}
+                    ${item.priority == 1 ? '<span class="priority-tag">Priority</span>' : ''}
                 `;
                 listContainer.appendChild(li);
             });
@@ -268,7 +269,14 @@ async function updateDashboard() {
  */
 async function callNext() {
     try {
-        const res = await fetch('../api/staff_actions.php?action=call_next', { method: 'POST' });
+        const formData = new FormData();
+        formData.append('action', 'call_next');
+        formData.append('csrf_token', '<?= csrf_token() ?>');
+
+        const res = await fetch('../api/staff_actions.php', { 
+            method: 'POST', 
+            body: formData 
+        });
         const data = await res.json();
         if (data.error) {
             window.QueueSense.showToast(data.error, 'danger');
@@ -288,18 +296,16 @@ async function markDone() {
     const formData = new FormData();
     formData.append('id', currentServingId);
     formData.append('action', 'mark_done');
+    formData.append('csrf_token', '<?= csrf_token() ?>');
 
     try {
-        const res = await fetch('../api/staff_actions.php', {
-            method: 'POST',
-            body: formData
-        });
+        const res = await fetch('../api/staff_actions.php', { method: 'POST', body: formData });
         const data = await res.json();
-        if (data.error) {
-            window.QueueSense.showToast(data.error, 'danger');
-        } else {
-            window.QueueSense.showToast('Transaction marked as complete.', 'success');
+        if (data.success) {
+            window.QueueSense.showToast('Transaction completed.', 'success');
             updateDashboard();
+        } else {
+            window.QueueSense.showToast(data.error || 'Failed to complete.', 'danger');
         }
     } catch (e) { console.error(e); }
 }
@@ -307,23 +313,28 @@ async function markDone() {
 /**
  * Action: No Show
  */
-function noShow() {
+async function noShow() {
     if (!currentServingId) return;
     
-    window.QueueSense.qsConfirm('Mark this student as No-Show?', async () => {
-        const formData = new FormData();
-        formData.append('id', currentServingId);
-        formData.append('action', 'no_show');
+    if (!confirm('Are you sure you want to mark this student as a No Show? They will be skipped.')) {
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('id', currentServingId);
+    formData.append('action', 'no_show');
+    formData.append('csrf_token', '<?= csrf_token() ?>');
 
-        try {
-            const res = await fetch('../api/staff_actions.php', { method: 'POST', body: formData });
-            const data = await res.json();
-            if (data.success) {
-                window.QueueSense.showToast('Marked as No-Show.', 'info');
-                updateDashboard();
-            }
-        } catch (e) { console.error(e); }
-    });
+    try {
+        const res = await fetch('../api/staff_actions.php', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            window.QueueSense.showToast('Marked as no-show.', 'warning');
+            updateDashboard();
+        } else {
+            window.QueueSense.showToast(data.error || 'Failed to update.', 'danger');
+        }
+    } catch (e) { console.error(e); }
 }
 
 /**
@@ -335,6 +346,7 @@ async function recall() {
     const formData = new FormData();
     formData.append('id', currentServingId);
     formData.append('action', 'recall');
+    formData.append('csrf_token', '<?= csrf_token() ?>');
 
     try {
         const res = await fetch('../api/staff_actions.php', { method: 'POST', body: formData });
@@ -347,12 +359,27 @@ async function recall() {
     } catch (e) { console.error(e); }
 }
 
+// BCP Institutional Loading Chain (Splash -> Syncing)
+window.HAS_CUSTOM_LOADER = true;
+window.addEventListener('load', () => {
+    const splash = document.getElementById('splash');
+    const syncOverlay = document.getElementById('syncOverlay');
+    
+    if (splash && syncOverlay) {
+        splash.classList.remove('hidden');
+        setTimeout(() => {
+            splash.classList.add('hidden');
+            syncOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                syncOverlay.classList.add('hidden');
+            }, 2000);
+        }, 2000);
+    }
+});
+
 // Polling
 updateDashboard();
 setInterval(updateDashboard, 5000);
-
 </script>
-";
-
-echo $extra_scripts;
+<?php
 // End of file

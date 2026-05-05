@@ -7,6 +7,13 @@
 // ─── Timezone ─────────────────────────────────────────────────────────────────
 date_default_timezone_set('Asia/Manila');
 
+// ─── Security Headers ─────────────────────────────────────────────────────────
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: https://api.qrserver.com; connect-src 'self';");
+header("X-Content-Type-Options: nosniff");
+header("X-Frame-Options: DENY");
+header("X-XSS-Protection: 1; mode=block");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+
 // ─── Database Credentials ─────────────────────────────────────────────────────
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
@@ -82,4 +89,35 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax',
     ]);
     session_start();
+}
+
+// ─── Rate Limiting ────────────────────────────────────────────────────────────
+function check_rate_limit(): void {
+    $is_post = ($_SERVER['REQUEST_METHOD'] === 'POST');
+    $max_requests = $is_post ? 15 : 60; // 15 POSTs or 60 GETs per minute
+    $seconds = 60;
+    
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $key = "rate_limit_" . ($is_post ? 'post_' : 'get_') . md5($ip);
+    
+    if (!isset($_SESSION[$key])) {
+        $_SESSION[$key] = ['count' => 1, 'start' => time()];
+        return;
+    }
+    
+    $data = &$_SESSION[$key];
+    if (time() - $data['start'] > $seconds) {
+        $data = ['count' => 1, 'start' => time()];
+    } else {
+        $data['count']++;
+        if ($data['count'] > $max_requests) {
+            http_response_code(429);
+            die('Too many requests. Please slow down.');
+        }
+    }
+}
+
+// Apply rate limiting globally (except for some assets if needed)
+if (strpos($_SERVER['REQUEST_URI'] ?? '', 'assets/') === false) {
+    check_rate_limit();
 }

@@ -14,9 +14,16 @@ require_once __DIR__ . '/../config.php';
 function current_user(): ?array {
     if (!isset($_SESSION['user']['id'])) return null;
     $db = db_connect();
-    $id = $_SESSION['user']['id'];
-    $res = $db->query("SELECT * FROM users WHERE id = $id");
-    return $res ? $res->fetch_assoc() : null;
+    $id = (int)$_SESSION['user']['id'];
+    
+    $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $user = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    
+    return $user;
 }
 
 /**
@@ -42,9 +49,32 @@ function require_auth(?string $role = null): void {
     if (!is_logged_in()) {
         redirect(BASE_URL . '/modules/auth/login.php');
     }
+    
+    // Anti-Hijacking Check
+    if (!validate_session()) {
+        session_destroy();
+        redirect(BASE_URL . '/modules/auth/login.php?error=session_compromised');
+    }
+
     if ($role !== null && !has_role($role)) {
         redirect(BASE_URL . '/modules/auth/login.php?error=unauthorized');
     }
+}
+
+/**
+ * Validates session against User-Agent and IP to prevent hijacking.
+ */
+function validate_session(): bool {
+    if (!isset($_SESSION['user'])) return true;
+    
+    $current_ua = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+    
+    if (!isset($_SESSION['ua_fingerprint'])) {
+        $_SESSION['ua_fingerprint'] = md5($current_ua);
+        return true;
+    }
+    
+    return $_SESSION['ua_fingerprint'] === md5($current_ua);
 }
 
 // ─── Redirect ─────────────────────────────────────────────────────────────────
@@ -52,6 +82,36 @@ function require_auth(?string $role = null): void {
 function redirect(string $url): never {
     header("Location: $url");
     exit;
+}
+
+// ─── CSRF Protection ──────────────────────────────────────────────────────────
+
+/**
+ * Generates or retrieves a CSRF token.
+ */
+function csrf_token(): string {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Verifies if the provided token matches the session token.
+ */
+function verify_csrf_token(?string $token): bool {
+    if (!$token || empty($_SESSION['csrf_token'])) return false;
+    return hash_equals($_SESSION['csrf_token'], $token);
+}
+
+/**
+ * Validates CSRF token from POST request or terminates.
+ */
+function require_csrf(): void {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        die('CSRF token validation failed.');
+    }
 }
 
 // ─── Ticket Helpers ───────────────────────────────────────────────────────────
@@ -254,9 +314,14 @@ function sync_journey_progress($user_id) {
         $log .= "Journey is complete.\n";
         // Update DB status to completed
         $stmt = $db->prepare("UPDATE user_journeys SET status = 'completed', current_step = ? WHERE user_id = ?");
-        $stmt->bind_param('ii', $journey['total_steps'], $user_id);
+        $actual_total = $journey['total_steps'];
+        $stmt->bind_param('ii', $actual_total, $user_id);
         $stmt->execute();
         $stmt->close();
+        
+        // IMPORTANT: Clear the journey from session so the tracker disappears/updates
+        unset($_SESSION['journey']);
+        
         file_put_contents($log_file, $log, FILE_APPEND);
         return false;
     }
@@ -318,10 +383,8 @@ function sync_journey_progress($user_id) {
     $stmt->execute();
     $stmt->close();
 
-    // Save to session if available
-    if (isset($_SESSION['journey'])) {
-        $_SESSION['journey'] = $journey;
-    }
+    // Save to session
+    $_SESSION['journey'] = $journey;
     
     $log .= "--- SYNC END ---\n";
     file_put_contents($log_file, $log, FILE_APPEND);
@@ -463,9 +526,36 @@ function clean(string $input): string {
     return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * Escapes output for HTML context. (Shorthand for htmlspecialchars)
+ */
+function h(?string $input): string {
+    return htmlspecialchars($input ?? '', ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * Strict Input Filtering (Whitelist based)
+ */
+function strict_input(string $input, string $type = 'alphanumeric'): string {
+    $input = trim($input);
+    switch ($type) {
+        case 'student_id':
+            return preg_replace('/[^a-zA-Z0-9-]/', '', $input);
+        case 'name':
+            return preg_replace('/[^a-zA-Z\s.-]/', '', $input);
+        case 'email':
+            return filter_var($input, FILTER_SANITIZE_EMAIL);
+        case 'numeric':
+            return preg_replace('/[^0-9]/', '', $input);
+        default:
+            return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+    }
+}
+
 // ─── QR Code URL Generator ────────────────────────────────────────────────────
 
 function generate_qr_url(string $token): string {
     $scan_url = urlencode(BASE_URL . '/modules/auth/qr_login.php?token=' . $token);
     return QR_API_URL . '?data=' . $scan_url . '&size=' . QR_SIZE . '&color=1e40af';
 }
+

@@ -27,7 +27,7 @@ $sql = "SELECT
              WHERE queue_type_id = qt.id AND user_id = ?
                AND status IN ('waiting','serving','pending')
                AND DATE(joined_at) = CURDATE()
-             LIMIT 1) AS my_ticket,
+             ORDER BY id DESC LIMIT 1) AS my_ticket,
             (SELECT COUNT(*) FROM service_windows
              WHERE queue_type_id = qt.id AND status = 'open') AS open_windows
         FROM queue_types qt
@@ -457,6 +457,28 @@ function planJourney() {
 }
 
 // Live AJAX polling
+// BCP Institutional Loading Chain (Splash -> Syncing)
+window.HAS_CUSTOM_LOADER = true;
+window.addEventListener('load', () => {
+    const splash = document.getElementById('splash');
+    const syncOverlay = document.getElementById('syncOverlay');
+    
+    if (splash && syncOverlay) {
+        // 1. Show Splash (2s)
+        splash.classList.remove('hidden');
+        
+        setTimeout(() => {
+            // 2. Switch to Syncing (2s)
+            splash.classList.add('hidden');
+            syncOverlay.classList.remove('hidden');
+            
+            setTimeout(() => {
+                syncOverlay.classList.add('hidden');
+            }, 2000);
+        }, 2000);
+    }
+});
+
 setInterval(() => {
     fetch('<?= BASE_URL ?>/api/get_queue_status.php')
         .then(r => r.json())

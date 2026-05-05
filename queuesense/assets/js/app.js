@@ -5,6 +5,16 @@
 
 'use strict';
 
+/**
+ * Escapes HTML characters in a string to prevent XSS.
+ */
+function escapeHTML(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 // ─── Sidebar Toggle (Mobile) ──────────────────────────────────────────────────
 const sidebar        = document.getElementById('qsSidebar');
 const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -64,8 +74,8 @@ function loadNotifications() {
                         <div class="d-flex gap-2">
                             <i class="bi ${icon} mt-1 flex-shrink-0"></i>
                             <div>
-                                <div class="small fw-semibold">${n.message}</div>
-                                <div class="text-muted" style="font-size:0.7rem">${n.time_ago}</div>
+                                <div class="small fw-semibold">${escapeHTML(n.message)}</div>
+                                <div class="text-muted" style="font-size:0.7rem">${escapeHTML(n.time_ago)}</div>
                             </div>
                         </div>
                     </a>`;
@@ -134,7 +144,7 @@ function showToast(message, type = 'info') {
 
     toast.innerHTML = `
         <i class="bi ${iconMap[type] || iconMap.info} text-${type} flex-shrink-0 mt-1"></i>
-        <div style="flex:1">${message}</div>
+        <div style="flex:1">${escapeHTML(message)}</div>
         <button onclick="this.closest('div').remove()" 
                 style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:0;line-height:1">
             <i class="bi bi-x"></i>
@@ -169,6 +179,17 @@ document.querySelectorAll('.alert.auto-hide').forEach(el => {
         el.style.opacity = '0';
         setTimeout(() => el.remove(), 500);
     }, 4000);
+});
+
+// ─── Institutional Splash Hider (Global) ──────────────────────────────────────
+window.addEventListener('load', () => {
+    const splash = document.getElementById('splash');
+    // Only auto-hide if the page doesn't have custom chaining logic
+    if (splash && !window.HAS_CUSTOM_LOADER) {
+        setTimeout(() => {
+            splash.classList.add('hidden');
+        }, 1200);
+    }
 });
 
 // ─── Expose globals ───────────────────────────────────────────────────────────

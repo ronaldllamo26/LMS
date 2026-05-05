@@ -61,7 +61,7 @@ $page_title = 'My Digital Ticket';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?> — QueueSense</title>
+    <title><?= h($page_title) ?> — QueueSense</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -141,12 +141,12 @@ $page_title = 'My Digital Ticket';
                     }
                 ?>
                     <span class="badge rounded-pill bg-white px-3 py-2 fw-800" style="font-size:0.65rem; color: #1e2a5e !important; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                        STEP <?= $display_step ?> / <?= $_SESSION['journey']['total_steps'] ?>
+                        STEP <?= h($display_step) ?> / <?= h($_SESSION['journey']['total_steps']) ?>
                     </span>
                 <?php endif; ?>
             </div>
             
-            <div class="ticket-id" style="color:white; font-size: 3.5rem; letter-spacing: -1px;"><?= $ticket['ticket_number'] ?></div>
+            <div class="ticket-id" style="color:white; font-size: 3.5rem; letter-spacing: -1px;"><?= h($ticket['ticket_number']) ?></div>
         </div>
 
         <div class="ticket-body" style="padding: 25px 30px;">
@@ -177,12 +177,12 @@ $page_title = 'My Digital Ticket';
                         }
                     ?>
                     <div class="status-pill <?= $status_class ?>" style="padding: 5px 12px; font-size: 0.75rem;">
-                        <?= $status_label ?>
+                        <?= h($status_label) ?>
                     </div>
                 </div>
                 <div class="col-6 text-end">
                     <div class="ticket-label">Est. Wait</div>
-                    <div class="fw-800 text-primary">~<?= $est['label'] ?></div>
+                    <div class="fw-800 text-primary">~<?= h($est['label']) ?></div>
                 </div>
             </div>
 
@@ -198,7 +198,7 @@ $page_title = 'My Digital Ticket';
                     <div class="flex-grow-1">
                         <div class="d-flex justify-content-between">
                             <span class="ticket-label" style="font-size:0.55rem;">NEXT STOP</span>
-                            <span class="fw-800 text-navy" style="font-size:0.75rem;"><?= $next_q['name'] ?></span>
+                            <span class="fw-800 text-navy" style="font-size:0.75rem;"><?= h($next_q['name']) ?></span>
                         </div>
                     </div>
                 </div>
@@ -223,7 +223,7 @@ $page_title = 'My Digital Ticket';
     // Generate QR Code
     const qrSource = document.getElementById("qrcode-source");
     const qrFinalImg = document.getElementById("finalQrImg");
-    const qrData = "QS-TICKET-<?= $ticket['ticket_number'] ?>-<?= $ticket['id'] ?>";
+    const qrData = "QS-TICKET-<?= h($ticket['ticket_number']) ?>-<?= h($ticket['id']) ?>";
     
     const qrcode = new QRCode(qrSource, {
         text: qrData,
@@ -272,7 +272,7 @@ $page_title = 'My Digital Ticket';
                 height: ticket.offsetHeight
             }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'BCP-Ticket-<?= $ticket['ticket_number'] ?>.png';
+                link.download = 'BCP-Ticket-<?= h($ticket['ticket_number']) ?>.png';
                 link.href = canvas.toDataURL("image/png", 1.0);
                 link.click();
                 
@@ -291,8 +291,8 @@ $page_title = 'My Digital Ticket';
             .then(r => r.json())
             .then(data => {
                 // Refresh if status changed, OR if we have a NEW ticket ID (Journey Progressed)
-                const currentId = <?= $ticket['id'] ?>;
-                if (data.status !== '<?= $ticket['status'] ?>' || 
+                const currentId = <?= (int)$ticket['id'] ?>;
+                if (data.status !== '<?= h($ticket['status']) ?>' || 
                     data.ticket_id === null || 
                     (data.ticket_id !== null && data.ticket_id != currentId)) {
                     location.reload();

@@ -3,6 +3,13 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+// Only staff and admins should be able to verify tickets
+require_auth();
+if (!has_role('staff') && !has_role('admin')) {
+    echo json_encode(['error' => 'Unauthorized access.']);
+    exit;
+}
+
 $db = db_connect();
 
 $id = $_GET['id'] ?? '';

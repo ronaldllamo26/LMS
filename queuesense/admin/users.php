@@ -17,6 +17,7 @@ $success_msg = '';
 $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_csrf();
     $action = $_POST['action'] ?? '';
     
     if ($action === 'add') {
@@ -184,6 +185,7 @@ include __DIR__ . '/../includes/header.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                 <input type="hidden" name="action" id="modalAction" value="add">
                 <input type="hidden" name="id" id="user_id">
                 <div class="modal-body py-4">
@@ -233,6 +235,7 @@ function toggleUser(id, checked) {
     formData.append('action', 'toggle');
     formData.append('id', id);
     formData.append('status', status);
+    formData.append('csrf_token', '<?= csrf_token() ?>');
 
     fetch('users.php', { method: 'POST', body: formData })
     .then(res => res.json()).then(data => {

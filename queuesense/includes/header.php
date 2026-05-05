@@ -17,6 +17,27 @@ $page_title = $page_title ?? SYSTEM_NAME;
 </head>
 <body class="<?= (isset($no_sidebar) && $no_sidebar) ? 'no-sidebar' : '' ?> <?= isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] === 'true' ? 'sidebar-collapsed' : '' ?>">
 
+<?php if (isset($_SESSION['show_bcp_loading']) && $_SESSION['show_bcp_loading']): ?>
+<!-- BCP Institutional Splash (Visible by default to prevent peeking) -->
+<div id="splash" class="bcp-splash">
+    <img src="<?= BASE_URL ?>/assets/images/bcp_logo.png" alt="BCP" class="bcp-splash-logo">
+</div>
+
+<!-- BCP Syncing Overlay (Hidden by default) -->
+<div id="syncOverlay" class="bcp-sync-overlay hidden">
+    <div class="sync-spinner">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+    <div class="sync-text">Syncing...</div>
+</div>
+<?php 
+    // Clear flag so it only shows ONCE per login
+    unset($_SESSION['show_bcp_loading']); 
+?>
+<?php endif; ?>
+
 <!-- ── TOPBAR (BCP SMS STYLE) ────────────────────────────────── -->
 <nav class="qs-navbar d-flex align-items-center justify-content-between px-3">
     

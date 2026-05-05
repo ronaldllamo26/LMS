@@ -60,6 +60,23 @@ $page_title = 'Public Queue Display';
         .display-footer { background: var(--bcp-navy); padding: 10px 40px; font-size: 1rem; border-top: 1px solid rgba(255,255,255,0.1); }
         .ticker { display: inline-block; animation: ticker 40s linear infinite; }
         @keyframes ticker { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+
+        /* New Side Panel Layout */
+        .display-content { display: flex; flex: 1; overflow: hidden; }
+        .display-main { flex: 3.5; padding: 30px; overflow-y: auto; }
+        .display-side { 
+            flex: 1; background: rgba(255,255,255,0.02); 
+            border-left: 1px solid rgba(255,255,255,0.08); 
+            padding: 30px; display: flex; flex-direction: column;
+        }
+        .side-title { font-size: 1.5rem; font-weight: 800; color: var(--bcp-gold); margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
+        .waiting-item { 
+            background: rgba(255,255,255,0.04); border-radius: 16px; padding: 15px 20px; 
+            margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+            border-left: 4px solid var(--bcp-blue);
+        }
+        .waiting-ticket { font-size: 1.6rem; font-weight: 800; }
+        .waiting-dept { font-size: 0.8rem; opacity: 0.6; font-weight: 600; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -75,24 +92,35 @@ $page_title = 'Public Queue Display';
         </div>
     </header>
 
-    <main class="display-main">
-        <div class="serving-grid" id="servingGrid">
-            <?php foreach ($all_serving as $s): ?>
-            <div class="serving-card">
-                <div class="card-dept"><?= $s['queue_name'] ?></div>
-                <div class="card-ticket"><?= $s['ticket_number'] ?></div>
-                <div class="card-window"><?= $s['window_label'] ?></div>
+    <div class="display-content">
+        <main class="display-main">
+            <div class="serving-grid" id="servingGrid">
+                <?php foreach ($all_serving as $s): ?>
+                <div class="serving-card">
+                    <div class="card-dept"><?= $s['queue_name'] ?></div>
+                    <div class="card-ticket"><?= $s['ticket_number'] ?></div>
+                    <div class="card-window"><?= $s['window_label'] ?></div>
+                </div>
+                <?php endforeach; ?>
+                
+                <?php if (empty($all_serving)): ?>
+                <div class="w-100 text-center py-5 opacity-25">
+                    <i class="bi bi-info-circle fs-1 d-block mb-3"></i>
+                    <h3>Waiting for Next Student</h3>
+                </div>
+                <?php endif; ?>
             </div>
-            <?php endforeach; ?>
-            
-            <?php if (empty($all_serving)): ?>
-            <div class="w-100 text-center py-5 opacity-25">
-                <i class="bi bi-info-circle fs-1 d-block mb-3"></i>
-                <h3>Waiting for Next Student</h3>
+        </main>
+
+        <aside class="display-side">
+            <div class="side-title"><i class="bi bi-hourglass-split me-2"></i> Next in Line</div>
+            <div id="waitingList">
+                <div class="text-center opacity-25 py-5">
+                    <div class="small">Scanning queue...</div>
+                </div>
             </div>
-            <?php endif; ?>
-        </div>
-    </main>
+        </aside>
+    </div>
 
     <div id="callOverlay">
         <div class="text-warning fw-800 mb-4" style="font-size:3rem; letter-spacing:10px;">NOW CALLING</div>
@@ -109,6 +137,16 @@ $page_title = 'Public Queue Display';
 
     <audio id="callChime" src="https://assets.mixkit.co/active_storage/sfx/1000/1000-preview.mp3"></audio>
 
+    <div id="interactionOverlay" onclick="this.remove()" style="position:fixed;bottom:30px;left:0;width:100%;z-index:9999;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <div style="background:var(--bcp-gold);color:var(--bcp-navy);padding:12px 30px;border-radius:50px;pointer-events:none;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,0.5);border:2px solid white;animation: bounce 2s infinite;">
+            <i class="bi bi-volume-up-fill me-2"></i> CLICK ANYWHERE TO ACTIVATE SOUND & VOICE
+        </div>
+    </div>
+
+    <style>
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-10px);} 60% {transform: translateY(-5px);} }
+    </style>
+
     <script>
         let lastChecksum = '<?= md5(json_encode($all_serving)) ?>';
 
@@ -116,32 +154,130 @@ $page_title = 'Public Queue Display';
             document.getElementById('liveClock').textContent = new Date().toLocaleTimeString();
         }, 1000);
 
-        function announce(ticket, windowLabel) {
+        let voices = [];
+        function loadVoices() {
+            voices = window.speechSynthesis.getVoices();
+        }
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+
+        let announcedTickets = new Set();
+        let speechQueue = [];
+        let isSpeaking = false;
+
+        function announce(ticket, windowLabel, callCount) {
+            // Unique key includes callCount so Recalls trigger a new announcement
+            const key = `${ticket}-${windowLabel}-${callCount}`;
+            if (announcedTickets.has(key)) return;
+            announcedTickets.add(key);
+            
+            speechQueue.push({ ticket, windowLabel });
+            processQueue();
+        }
+
+        async function processQueue() {
+            if (isSpeaking || speechQueue.length === 0) return;
+            isSpeaking = true;
+
+            const { ticket, windowLabel } = speechQueue.shift();
             const chime = document.getElementById('callChime');
             const overlay = document.getElementById('callOverlay');
+            
             document.getElementById('overlayTicket').textContent = ticket;
             document.getElementById('overlayWindow').textContent = windowLabel;
 
-            window.speechSynthesis.cancel();
+            // Prepare synthesis
+            window.speechSynthesis.cancel(); 
             overlay.style.display = 'flex';
             
-            chime.pause(); chime.currentTime = 0; chime.play();
+            if (chime) {
+                chime.pause(); 
+                chime.currentTime = 0; 
+                try { await chime.play(); } catch(e) { console.warn("Chime blocked"); }
+            }
+            
+            let speechFinished = false;
+            let timerFinished = false;
+
+            const checkFinish = () => {
+                if (speechFinished && timerFinished) {
+                    overlay.style.display = 'none';
+                    isSpeaking = false;
+                    setTimeout(processQueue, 500); // Small gap between calls
+                }
+            };
+
+            // Safety timer: Minimum 5 seconds visibility
+            setTimeout(() => {
+                timerFinished = true;
+                checkFinish();
+            }, 5000);
             
             setTimeout(() => {
                 const msg = new SpeechSynthesisUtterance();
-                const voices = window.speechSynthesis.getVoices();
-                msg.voice = voices.find(v => v.name.includes('Female')) || voices[0];
+                if (voices.length === 0) loadVoices();
+                
+                msg.voice = voices.find(v => v.lang.includes('en') && v.name.includes('Female')) || 
+                            voices.find(v => v.lang.includes('en')) || 
+                            voices[0];
+                            
                 msg.text = `Now serving, Ticket Number ${ticket.split('').join(' ')}, at ${windowLabel}`;
                 msg.rate = 0.85;
-                window.speechSynthesis.speak(msg);
-
+                msg.volume = 1;
+                
                 msg.onend = () => {
-                    setTimeout(() => {
-                        overlay.style.display = 'none';
-                        location.reload(); 
-                    }, 1000);
+                    speechFinished = true;
+                    checkFinish();
                 };
-            }, 1200);
+
+                msg.onerror = (err) => {
+                    console.error("Speech Error:", err);
+                    speechFinished = true; // Still mark as finished to allow timer to close it
+                    checkFinish();
+                };
+
+                window.speechSynthesis.speak(msg);
+                
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                }
+            }, 1000);
+        }
+
+        function updateServingGrid(serving) {
+            const grid = document.getElementById('servingGrid');
+            const newHTML = serving.length === 0 
+                ? `<div class="w-100 text-center py-5 opacity-25"><i class="bi bi-info-circle fs-1 d-block mb-3"></i><h3>Waiting for Next Student</h3></div>`
+                : serving.map(s => `
+                    <div class="serving-card">
+                        <div class="card-dept">${s.queue_name}</div>
+                        <div class="card-ticket">${s.ticket_number}</div>
+                        <div class="card-window">${s.window_label}</div>
+                    </div>
+                `).join('');
+            
+            if (grid.innerHTML !== newHTML) {
+                grid.innerHTML = newHTML;
+            }
+        }
+
+        function updateWaitingList(waiting) {
+            const list = document.getElementById('waitingList');
+            const newHTML = waiting.length === 0
+                ? `<div class="text-center opacity-25 py-5"><div class="small">No one waiting</div></div>`
+                : waiting.map(w => `
+                    <div class="waiting-item">
+                        <div>
+                            <div class="waiting-dept">${w.queue_name}</div>
+                            <div class="waiting-ticket">${w.ticket_number}</div>
+                        </div>
+                        <div class="small text-white-50">WAITING</div>
+                    </div>
+                `).join('');
+            
+            if (list.innerHTML !== newHTML) {
+                list.innerHTML = newHTML;
+            }
         }
 
         setInterval(() => {
@@ -150,12 +286,31 @@ $page_title = 'Public Queue Display';
                 .then(data => {
                     if (data.checksum && data.checksum !== lastChecksum) {
                         lastChecksum = data.checksum;
-                        if (data.serving && data.serving.length > 0) {
-                            announce(data.serving[0]['ticket_number'], data.serving[0]['window_label']);
+                        
+                        if (data.serving) {
+                            updateServingGrid(data.serving);
+                            data.serving.forEach(s => {
+                                announce(s.ticket_number, s.window_label, s.call_count);
+                            });
+                        }
+
+                        if (data.waiting) {
+                            updateWaitingList(data.waiting);
                         }
                     }
-                });
+                })
+                .catch(err => console.error("Poll Error:", err));
         }, 2000);
+
+        // Stuck Prevention: Reset isSpeaking if it takes too long (> 10s)
+        setInterval(() => {
+            if (isSpeaking && !window.speechSynthesis.speaking) {
+                console.warn("Speech synthesis seems stuck. Resetting...");
+                isSpeaking = false;
+                document.getElementById('callOverlay').style.display = 'none';
+                processQueue();
+            }
+        }, 10000);
     </script>
 </body>
 </html>
