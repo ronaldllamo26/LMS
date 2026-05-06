@@ -77,6 +77,27 @@ $page_title = 'Public Queue Display';
         }
         .waiting-ticket { font-size: 1.6rem; font-weight: 800; }
         .waiting-dept { font-size: 0.8rem; opacity: 0.6; font-weight: 600; text-transform: uppercase; }
+
+        /* Responsive Styles */
+        @media (max-width: 991.98px) {
+            body { overflow: auto; height: auto; }
+            .display-header { padding: 15px 20px; flex-direction: column; text-align: center; gap: 10px; }
+            .display-header .text-end { text-align: center !important; }
+            .display-content { flex-direction: column; overflow: visible; }
+            .display-main { flex: none; padding: 20px; }
+            .display-side { flex: none; border-left: none; border-top: 1px solid rgba(255,255,255,0.08); padding: 20px; }
+            .serving-grid { grid-template-columns: 1fr; }
+            .card-ticket { font-size: 4.5rem; }
+            #overlayTicket { font-size: 8rem !important; }
+            #overlayWindow { font-size: 3rem !important; }
+            .display-footer { padding: 10px 20px; }
+        }
+        @media (max-width: 576px) {
+            .card-ticket { font-size: 3.5rem; }
+            #overlayTicket { font-size: 6rem !important; }
+            .display-header h3 { font-size: 1.2rem; }
+            .display-header h2 { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>

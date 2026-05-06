@@ -14,6 +14,21 @@ $page_title = $page_title ?? SYSTEM_NAME;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/style.css" rel="stylesheet">
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="<?= BASE_URL ?>/manifest.json">
+    <meta name="theme-color" content="#1e2a5e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="<?= BASE_URL ?>/assets/images/bcp_logo.png">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('<?= BASE_URL ?>/sw.js')
+                .then(reg => console.log('SW Registered'))
+                .catch(err => console.log('SW Registration Failed', err));
+        }
+    </script>
 </head>
 <body class="<?= (isset($no_sidebar) && $no_sidebar) ? 'no-sidebar' : '' ?> <?= isset($_COOKIE['sidebar_collapsed']) && $_COOKIE['sidebar_collapsed'] === 'true' ? 'sidebar-collapsed' : '' ?>">
 
@@ -38,6 +53,9 @@ $page_title = $page_title ?? SYSTEM_NAME;
 ?>
 <?php endif; ?>
 
+<!-- Sidebar Overlay for Mobile -->
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
 <!-- ── TOPBAR (BCP SMS STYLE) ────────────────────────────────── -->
 <nav class="qs-navbar d-flex align-items-center justify-content-between px-3">
     
@@ -53,16 +71,22 @@ $page_title = $page_title ?? SYSTEM_NAME;
                 <i class="bi bi-list fs-4"></i>
             </button>
         <?php endif; ?>
+
+        <!-- Brand (Mobile Only) -->
+        <div class="d-lg-none ms-2">
+            <span class="qs-brand-name">QueueSense</span>
+            <span class="qs-brand-sub d-block">Student Queueing</span>
+        </div>
     </div>
 
     <!-- Right: Clock, Fullscreen, Search -->
     <div class="d-flex align-items-center gap-4">
-        <div id="digitalClock" class="fw-600 text-muted small" style="letter-spacing: 0.5px;">
+        <div id="digitalClock" class="fw-600 text-muted small desktop-only" style="letter-spacing: 0.5px;">
             00:00:00 PM
         </div>
         
         <div class="d-flex align-items-center gap-3 text-muted">
-            <i class="bi bi-arrows-fullscreen cursor-pointer" onclick="toggleFullscreen()" style="font-size: 1.1rem;" title="Fullscreen"></i>
+            <i class="bi bi-arrows-fullscreen cursor-pointer desktop-only" onclick="toggleFullscreen()" style="font-size: 1.1rem;" title="Fullscreen"></i>
             <i class="bi bi-search cursor-pointer" onclick="toggleSearch()" style="font-size: 1.1rem;" title="Search for a page"></i>
         </div>
     </div>
@@ -148,9 +172,15 @@ $page_title = $page_title ?? SYSTEM_NAME;
 
     // Sidebar Toggle Logic
     function toggleSidebar() {
-        document.body.classList.toggle('sidebar-collapsed');
-        const isCollapsed = document.body.classList.contains('sidebar-collapsed');
-        document.cookie = "sidebar_collapsed=" + isCollapsed + "; path=/; max-age=" + (30 * 24 * 60 * 60);
+        if (window.innerWidth < 992) {
+            document.body.classList.toggle('sidebar-open');
+            document.body.classList.remove('sidebar-collapsed');
+        } else {
+            document.body.classList.toggle('sidebar-collapsed');
+            document.body.classList.remove('sidebar-open');
+            const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+            document.cookie = "sidebar_collapsed=" + isCollapsed + "; path=/; max-age=" + (30 * 24 * 60 * 60);
+        }
     }
 
     // Fullscreen Toggle

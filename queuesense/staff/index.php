@@ -181,6 +181,23 @@ $stmt->close();
 }
 .list-group-item:hover { background: #f8fafc; }
 .priority-tag { font-size: 0.6rem; background: #fee2e2; color: #b91c1c; padding: 1px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; }
+
+/* Responsive Staff Dashboard */
+@media (max-width: 991.98px) {
+    .qs-page-header { flex-direction: column; text-align: center; gap: 10px; }
+    .qs-page-header .text-end { text-align: center !important; }
+    .ticket-display { min-width: 100px; padding: 10px; }
+    .ticket-val { font-size: 1.5rem; }
+    #serving-content .d-flex { flex-direction: column; text-align: center; }
+    #serving-content .d-flex .gap-2 { justify-content: center; width: 100%; margin-top: 20px; }
+}
+@media (max-width: 576px) {
+    .qs-page-title { font-size: 1.5rem; }
+    .qs-stat-value { font-size: 1.5rem; }
+    #serving-content .d-flex.gap-2 { flex-wrap: wrap; }
+    #serving-content .d-flex.gap-2 button { flex: 1; min-width: 45%; }
+    #serving-content .d-flex.gap-2 .qs-btn-primary { width: 100%; flex: 0 0 100%; order: -1; margin-bottom: 10px; }
+}
 </style>
 
 <script>

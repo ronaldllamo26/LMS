@@ -92,6 +92,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="<?= BASE_URL ?>/assets/css/style.css" rel="stylesheet">
 
+    <!-- PWA Settings -->
+    <link rel="manifest" href="<?= BASE_URL ?>/manifest.json">
+    <meta name="theme-color" content="#1e2a5e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="<?= BASE_URL ?>/assets/images/bcp_logo.png">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('<?= BASE_URL ?>/sw.js')
+                    .then(reg => console.log('SW Registered'))
+                    .catch(err => console.log('SW Registration Failed', err));
+            });
+        }
+    </script>
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -422,14 +439,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: white;
         }
 
-        /* Responsive: stack on mobile */
-        @media (max-width: 768px) {
-            .bcp-login-wrap { flex-direction: column; height: auto; overflow: auto; }
-            .bcp-left { flex: none; max-width: 100%; padding: 32px 24px; }
-            .bcp-right { flex: none; padding: 40px 24px; min-height: 220px; }
-            .bcp-right-title { font-size: 1.6rem; }
-            body { overflow: auto; }
+        /* Responsive: stack on mobile (BCP SMS EXACT MATCH) */
+        @media (max-width: 991.98px) {
+            body { background: #f4f5f9; overflow-y: auto; height: auto; }
+            .bcp-login-wrap { display: block; height: auto; padding: 60px 24px; text-align: center; }
+            
+            .bcp-left { 
+                flex: none; max-width: 100%; padding: 0; 
+                display: block; background: transparent; 
+            }
+            
+            .bcp-form-inner {
+                max-width: 340px;
+                margin: 0 auto;
+                background: transparent;
+                padding: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .bcp-logo { margin: 0 auto 30px; width: 120px; height: 120px; }
+            .bcp-sign-in-title { text-align: center; font-size: 2.2rem; font-weight: 800; margin-bottom: 40px; color: #1a1a2e; }
+            
+            .bcp-label { text-align: left; }
+            .bcp-input { 
+                border-radius: 8px; /* Slightly rounded as per screenshot */
+                padding: 14px 16px;
+                border: 1px solid #d1d5db;
+                background: white;
+            }
+
+            .bcp-right { display: none !important; } 
+            
+            .bcp-btn, .bcp-mobile-admission {
+                display: block !important;
+                width: 100%;
+                background: #4b5ec4 !important; /* Accurate BCP Blue */
+                color: white !important;
+                padding: 14px;
+                border-radius: 50px;
+                font-weight: 700;
+                font-size: 0.95rem;
+                text-decoration: none;
+                border: none;
+                margin-top: 25px;
+                box-shadow: none;
+                transition: opacity 0.2s;
+            }
+            .bcp-mobile-admission { margin-top: 15px; }
+            .bcp-btn:hover, .bcp-mobile-admission:hover { opacity: 0.9; }
+
+            .bcp-error {
+                background: transparent;
+                border: none;
+                color: #c62828;
+                padding: 4px 0;
+                font-size: 0.75rem;
+                margin-top: -12px;
+                margin-bottom: 15px;
+                gap: 4px;
+                text-align: left;
+            }
+            .bcp-error i { display: none; } /* Hide icon on mobile as per screenshot */
         }
+
+        .bcp-mobile-admission { display: none; }
 
 
         /* Shake Animation */
@@ -466,7 +540,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <i class="bi bi-person-lines-fill text-white" style="font-size:2.5rem;"></i>
             </div>
 
-            <h1 class="bcp-sign-in-title">Sign in</h1>
+            <h1 class="bcp-sign-in-title">
+                <span onclick="switchTab('student')" style="cursor: default; user-select: none;">S</span>ign 
+                <span onclick="switchTab('staff')" style="cursor: default; user-select: none;">i</span>n
+            </h1>
 
             <!-- Tab switcher: Hidden for Staff/Admin (Secret Portal) -->
             <div class="bcp-tabs d-none" role="group">
@@ -496,7 +573,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Student ID -->
                 <div class="bcp-field">
                     <label class="bcp-label" for="student_id">
-                        <span id="idLabel">Student ID</span> <span>*</span>
+                        <span id="idLabel">Username</span> <span>*</span>
                     </label>
                     <input type="text"
                            class="bcp-input"
@@ -591,7 +668,7 @@ function switchTab(type) {
     // document.getElementById('passwordField').style.display = isStaff ? 'block' : 'none';
     document.getElementById('password').required = true;
 
-    document.getElementById('idLabel').textContent = isStaff ? 'Employee ID' : 'Student ID';
+    document.getElementById('idLabel').textContent = isStaff ? 'Employee ID' : 'Username';
     document.getElementById('student_id').placeholder = "";
 }
 

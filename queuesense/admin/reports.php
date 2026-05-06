@@ -170,10 +170,10 @@ include __DIR__ . '/../includes/header.php';
                         <tbody class="small">
                             <?php foreach($transactions as $t): ?>
                             <tr>
-                                <td class="fw-bold text-navy"><?= $t['ticket_number'] ?></td>
-                                <td><?= htmlspecialchars($t['full_name']) ?></td>
-                                <td><?= htmlspecialchars($t['dept_name']) ?></td>
-                                <td><?= $t['window_label'] ?: '<span class="text-muted">—</span>' ?></td>
+                                <td class="fw-bold text-navy"><?= h($t['ticket_number']) ?></td>
+                                <td><?= h($t['full_name']) ?></td>
+                                <td><?= h($t['dept_name']) ?></td>
+                                <td><?= h($t['window_label'] ?: '—') ?></td>
                                 <td><?= date('g:i A', strtotime($t['joined_at'])) ?></td>
                                 <td>
                                     <?php 

@@ -215,6 +215,26 @@ $colors = [
         padding: 20px 40px;
         flex: 1;
     }
+
+    /* Responsive Status Styles */
+    @media (max-width: 991.98px) {
+        .hero-banner { padding: 25px; margin-bottom: 20px; }
+        .hero-title { font-size: 1.5rem; }
+        .ai-recommendation { flex-direction: column; text-align: center; }
+        .queue-grid { grid-template-columns: 1fr; gap: 15px; }
+        .status-content-wrapper { padding: 20px; }
+        .fastpass-bar { 
+            width: calc(100% - 30px); bottom: 15px; 
+            flex-direction: column; gap: 15px; border-radius: 20px;
+            text-align: center;
+        }
+    }
+    @media (max-width: 576px) {
+        .hero-title { font-size: 1.3rem; }
+        .hero-sub { font-size: 0.85rem; }
+        .card-stat-row { grid-template-columns: 1fr; text-align: left !important; }
+        .stat-item.text-end { text-align: left !important; margin-top: 5px; }
+    }
 </style>
 
 <?php include __DIR__ . '/../../includes/header.php'; ?>

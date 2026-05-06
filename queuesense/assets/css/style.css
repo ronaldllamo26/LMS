@@ -15,9 +15,9 @@
     --qs-warning:    #e65100;
     --qs-danger:     #c62828;
 
-    --bg-page:       #f1f5f9;   /* Page background */
+    --bg-page:       #f4f5f9;   /* Consistent BCP Light Gray */
     --bg-card:       #ffffff;
-    --bg-sidebar:    #1e2a5e;
+    --bg-sidebar:    linear-gradient(180deg, #1a3686 0%, #111a3b 100%);
 
     --border:        #e2e8f0;
     --text-dark:     #1a1a2e;
@@ -267,6 +267,23 @@ a { text-decoration: none; color: inherit; }
 }
 .sidebar-collapsed .qs-navbar { 
     left: 0; 
+}
+
+/* Mobile Sidebar Overlay Logic */
+.sidebar-open .qs-sidebar {
+    transform: translateX(0) !important;
+    box-shadow: 20px 0 50px rgba(0,0,0,0.3);
+}
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1015;
+    display: none;
+    backdrop-filter: blur(4px);
+}
+.sidebar-open .sidebar-overlay {
+    display: block;
 }
 
 /* ─── Layout ─────────────────────────────────────────────────────── */
@@ -626,13 +643,59 @@ a { text-decoration: none; color: inherit; }
 
 /* ─── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 991.98px) {
-    .qs-sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }
-    .qs-sidebar.open { transform: translateX(0); box-shadow: var(--shadow-md); }
-    .qs-main-content { margin-left: 0; padding: 18px 14px; }
-    .bcp-login-wrap { flex-direction: column; height: auto; }
-    .bcp-left { flex: none; max-width: 100%; padding: 32px 24px; }
-    .bcp-right { flex: none; padding: 40px 24px; min-height: 200px; }
-    .bcp-right-title { font-size: 1.5rem; }
+    /* Off-canvas sidebar logic */
+    .qs-sidebar { 
+        transform: translateX(-100%); 
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 280px;
+        z-index: 1050;
+    }
+    
+    .qs-navbar {
+        left: 0 !important;
+        width: 100% !important;
+        padding-left: 10px;
+    }
+
+    .qs-main-content { 
+        margin-left: 0 !important; 
+        padding: 80px 16px 30px; /* Precise SMS padding */
+    }
+
+    .qs-page-header {
+        margin-bottom: 24px;
+        text-align: center;
+    }
+
+    .qs-page-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+    }
+
+    /* BCP SMS Grid Stacking */
+    .row > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+
+    .qs-stat-card {
+        margin-bottom: 16px;
+    }
+
+    /* Hide the blue hero in login ONLY on mobile */
+    .bcp-right { display: none !important; }
+    .bcp-left { flex: none; width: 100%; max-width: 100%; padding: 0; background: transparent; }
+    .bcp-login-wrap { display: block; height: auto; padding: 40px 16px; }
+
+    /* Hide desktop-only elements */
+    .desktop-only { display: none !important; }
+}
+
+@media (max-width: 576px) {
+    .qs-brand-name { font-size: 0.9rem; }
+    .qs-navbar { padding: 0 10px !important; }
+    .qs-main-content { padding-top: 70px; }
 }
 /* ─── Syncing Overlay ─────────────────────────────────────────────── */
 .bcp-sync-overlay {

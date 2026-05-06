@@ -245,6 +245,9 @@ $page_title = 'My Digital Ticket';
     </button>
     
     <div class="text-center mt-3">
+        <div id="notifStatus" class="small fw-600 text-muted mb-2">
+            <i class="bi bi-broadcast text-success"></i> Monitoring Queue...
+        </div>
         <a href="<?= BASE_URL ?>/modules/queue/status.php" class="btn btn-outline-secondary w-100 rounded-pill fw-700 py-3 border-0" style="font-size:0.85rem;">
             <i class="bi bi-arrow-left me-1"></i> BACK TO DASHBOARD
         </a>
@@ -319,23 +322,140 @@ $page_title = 'My Digital Ticket';
         }, 1200);
     }
 
-    // Real-Time Ticket Monitor
+    // Real-Time Ticket Monitor & Smart Notifications
+    let notificationPermission = Notification.permission === "granted";
+    let hasAlertedNear = false;
+    let hasAlertedNow = false;
+
+    // Sound Helper
+    const alertSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+    function enableNotifications() {
+        if (!("Notification" in window)) {
+            alert("This browser does not support notifications.");
+            return;
+        }
+
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                notificationPermission = true;
+                updateNotifButton('active');
+                new Notification("QueueSense", {
+                    body: "Notifications enabled! We'll alert you soon.",
+                    icon: "<?= BASE_URL ?>/assets/images/bcp_logo.png"
+                });
+            } else {
+                alert("Permission denied. You won't receive banner alerts, but we will use browser popups instead.");
+            }
+        });
+    }
+
+    function updateNotifButton(state) {
+        const btn = document.getElementById('notifBtn');
+        if (!btn) return;
+        if (state === 'active') {
+            btn.classList.replace('btn-outline-primary', 'btn-success');
+            btn.innerHTML = '<i class=\"bi bi-bell-fill me-2\"></i> Alerts Enabled';
+        }
+    }
+
+    function testNotif() {
+        triggerVibrate();
+        alertSound.play().catch(e => console.log("Sound blocked"));
+        if (notificationPermission) {
+            new Notification("Test Alert", { body: "This is how you will be notified!" });
+        } else {
+            alert("TEST: This is a fallback alert since notifications are not allowed.");
+        }
+    }
+
+    function triggerVibrate() {
+        if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200]);
+        }
+    }
+
+    // Auto-update button if already granted
+    if (Notification.permission === "granted") {
+        setTimeout(() => updateNotifButton('active'), 500);
+    }
+
     setInterval(() => {
+        const statusEl = document.getElementById('notifStatus');
+        if (statusEl) statusEl.innerHTML = '<i class=\"bi bi-broadcast text-success\"></i> Checking Queue...';
+
         fetch('<?= BASE_URL ?>/api/get_my_ticket_status.php')
             .then(r => r.json())
             .then(data => {
-                // Refresh if status changed, OR if we have a NEW ticket ID (Journey Progressed)
+                console.log("Queue Update:", data);
+                
+                if (statusEl) {
+                    if (data.status === 'waiting') {
+                        statusEl.innerHTML = `<i class=\"bi bi-broadcast text-success\"></i> ${data.people_ahead} people ahead of you`;
+                    } else if (data.status === 'serving') {
+                        statusEl.innerHTML = '<i class=\"bi bi-check-circle-fill text-success\"></i> YOUR TURN!';
+                    } else {
+                        statusEl.innerHTML = '<i class=\"bi bi-broadcast text-muted\"></i> Monitoring Queue...';
+                    }
+                }
+
+                // 1. Proximity Alert (2 people ahead)
+                if (data.status === 'waiting' && data.people_ahead <= 2 && data.people_ahead > 0 && !hasAlertedNear) {
+                    hasAlertedNear = true;
+                    triggerVibrate();
+                    alertSound.play().catch(e => {});
+                    
+                    if (notificationPermission) {
+                        new Notification("QueueSense Alert", {
+                            body: `Prepare now! Only ${data.people_ahead} people ahead of you.`,
+                            icon: "<?= BASE_URL ?>/assets/images/bcp_logo.png"
+                        });
+                    } else {
+                        alert(`QueueSense: Your turn is near! Only ${data.people_ahead} people ahead.`);
+                    }
+                }
+
+                // 2. Now Serving Alert
+                if (data.status === 'serving' && !hasAlertedNow) {
+                    hasAlertedNow = true;
+                    triggerVibrate();
+                    alertSound.play().catch(e => {});
+                    
+                    if (notificationPermission) {
+                        new Notification("IT'S YOUR TURN!", {
+                            body: "Proceed to your window now.",
+                            icon: "<?= BASE_URL ?>/assets/images/bcp_logo.png",
+                            requireInteraction: true
+                        });
+                    } else {
+                        alert("QueueSense: IT'S YOUR TURN! Please proceed to the window.");
+                    }
+                }
+
+                // Refresh if status changed
                 const currentId = <?= (int)$ticket['id'] ?>;
                 if (data.status !== '<?= h($ticket['status']) ?>' || 
                     data.ticket_id === null || 
                     (data.ticket_id !== null && data.ticket_id != currentId)) {
-                    // Only reload if the NEW ticket is NOT pending (meaning it's our turn) 
-                    // or if our current ticket was cancelled/done.
-                    location.reload();
+                    
+                    setTimeout(() => location.reload(), 3000);
                 }
             });
-    }, 3000); // Check every 3 seconds for snappy feel
+    }, 4000); 
 </script>
+
+<!-- Notification Controls -->
+<div class="px-4 pb-4">
+    <?php if ($ticket['status'] !== 'serving'): ?>
+        <button id="notifBtn" onclick="enableNotifications()" class="btn btn-outline-primary w-100 rounded-pill fw-700 py-2 mb-2" style="font-size:0.8rem; border-style: dashed;">
+            <i class="bi bi-bell me-2"></i> Enable Smart Alerts
+        </button>
+    <?php endif; ?>
+    
+    <button onclick="testNotif()" class="btn btn-link w-100 text-muted fw-600 text-decoration-none" style="font-size: 0.7rem;">
+        <i class="bi bi- megaphone me-1"></i> Test My Notification
+    </button>
+</div>
 
 </body>
 </html>

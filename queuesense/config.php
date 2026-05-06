@@ -26,7 +26,14 @@ define('SYSTEM_NAME',    'QueueSense');
 define('SYSTEM_TAGLINE', 'Smart Queue & Crowd Flow Management');
 define('SYSTEM_VERSION', '1.0.0');
 define('INSTITUTION',    'Bestlink College of the Philippines');
-define('BASE_URL',       'http://localhost/lms/queuesense');
+
+// Dynamic BASE_URL for LAN/Local testing
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+$host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$dir      = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+// Ensure we don't include the subfolders if we are in one
+$base_path = (strpos($dir, '/queuesense') !== false) ? substr($dir, 0, strpos($dir, '/queuesense') + 11) : $dir;
+define('BASE_URL', rtrim($protocol . $host . $base_path, '/'));
 
 // ─── Queue Settings ───────────────────────────────────────────────────────────
 define('QUEUE_RESET_HOUR',     8);    // Hour queues open (24h format)

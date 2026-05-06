@@ -312,9 +312,31 @@ $active_page = 'profile';
     #imageToCrop { opacity: 0 !important; }
     .cropper-hidden { display: none !important; }
 
+    /* --- Responsive Profile Styles --- */
+    @media (max-width: 1200px) {
+        .settings-content-wrapper { padding: 30px 40px; }
+    }
 
+    @media (max-width: 991.98px) {
+        body { overflow: auto; height: auto; }
+        .qs-main-wrapper { height: auto; display: block; }
+        .settings-main-layout { margin-left: 0 !important; height: auto; overflow: visible; }
+        .settings-columns-row { flex-direction: column; height: auto; overflow: visible; }
+        .settings-nav-sidebar { width: 100%; height: auto; padding-top: 20px; border-right: none; border-bottom: 1px solid #e2e8f0; }
+        .settings-header-title { padding: 0 20px 20px; font-size: 1.8rem; }
+        .settings-nav-item { padding: 15px 20px; }
+        .settings-content-area { height: auto; overflow: visible; padding-top: 20px; }
+        .settings-content-wrapper { padding: 20px; }
+        .bcp-form-grid { grid-template-columns: 1fr; gap: 20px; }
+        .profile-card { padding: 0; }
+        .section-header { font-size: 1.3rem; }
+    }
 
-
+    @media (max-width: 576px) {
+        .settings-header-title { font-size: 1.5rem; }
+        .nav-title { font-size: 0.85rem; }
+        .nav-sub { display: none; }
+    }
 </style>
 
 <div class="qs-main-wrapper">

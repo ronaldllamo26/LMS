@@ -31,13 +31,33 @@ $stmt->close();
 
 
 if ($ticket) {
+    $entry_id = $ticket['id'];
+    $status   = $ticket['status'];
+    $ahead    = 0;
+
+    if ($status === 'waiting') {
+        // Fetch queue details to calculate position
+        $stmt = $db->prepare("SELECT queue_type_id, position FROM queue_entries WHERE id = ?");
+        $stmt->bind_param('i', $entry_id);
+        $stmt->execute();
+        $details = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if ($details) {
+            $pred = predict_wait_time($details['queue_type_id'], $details['position']);
+            $ahead = $pred['people_ahead'];
+        }
+    }
+
     echo json_encode([
-        'ticket_id' => $ticket['id'],
-        'status' => $ticket['status']
+        'ticket_id'    => $entry_id,
+        'status'       => $status,
+        'people_ahead' => $ahead
     ]);
 } else {
     echo json_encode([
-        'ticket_id' => null,
-        'status' => 'none'
+        'ticket_id'    => null,
+        'status'       => 'none',
+        'people_ahead' => 0
     ]);
 }
